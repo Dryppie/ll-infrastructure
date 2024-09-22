@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ll-app-version
+  namespace: ll
+data:
+  ll-app-version: { { .Chart.Version } }

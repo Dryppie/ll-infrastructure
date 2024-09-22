@@ -1,0 +1,4 @@
+#mst-cew-udv01.resdmz.dmzroot.dk
+
+argocd:
+  repoURL: ghcr.io/dryppie/

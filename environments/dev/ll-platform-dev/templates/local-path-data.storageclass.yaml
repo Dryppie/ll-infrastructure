@@ -1,0 +1,14 @@
+#husk at patche configmap: local-path-config
+#husk at oprette data mappe
+#https://github.com/rancher/local-path-provisioner
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  name: local-path-data
+provisioner: rancher.io/local-path
+parameters:
+  nodePath: /sda/data
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

@@ -1,0 +1,14 @@
+# Default values for ll-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+#
+
+environmentHost: ""
+
+ll-frontend:
+  imagePullSecrets:
+    - name: regcred
+
+ll-backend:
+  imagePullSecrets:
+    - name: regcred

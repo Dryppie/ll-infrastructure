@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-app
+  namespace: argocd
+spec:
+  destination:
+    namespace: gateway
+    server: https://kubernetes.default.svc
+  project: default
+  syncPolicy:
+    automated: {}
+  source:
+    repoURL: {{ .Values.argocd.repoURL }}
+    targetRevision: 0.0.*
+    chart: helm/gateway-app
+    helm:
+      values: |
+        #
+        environmentHost: dev.coea.mst.dk
+
+        api-gateway:
+          env:
+            ASPNETCORE_ENVIRONMENT:
+              value: Development
+            Ocelot__GatewayHost:
+              value: https://dev.coea.mst.dk
+
+            Serilog__WriteTo__1__Name:
+              value: "Seq"
+            Serilog__WriteTo__1__Args__serverUrl:
+              value: "http://seq.monitoring.svc.cluster.local:5341"
+            Serilog__WriteTo__1__Args__apiKey:
+              value: "Ce4Yb7vAuL9BncJVijcM"

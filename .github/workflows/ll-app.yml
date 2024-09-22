@@ -1,0 +1,90 @@
+name: Build ll-app
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "releases/**"
+    paths:
+      - deploy/ll/ll-app
+      - deploy/versions/ll-backend.version
+      - deploy/versions/ll-frontend.version
+
+jobs:
+  get_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Major and Minor Versions
+        run: |
+          echo "major=0" >> $GITHUB_ENV
+          echo "minor=0" >> $GITHUB_ENV
+
+      - name: Get Latest Patch Version
+        id: get_version
+        shell: bash
+        run: |
+          # Fetch all tags to ensure we have the latest
+          git fetch --tags
+
+          # Find the latest tag matching the major.minor.* pattern
+          LATEST_TAG=$(git tag --list "${{ env.major }}.${{ env.minor }}.*" --sort=-v:refname | head -n1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            PATCH=0
+          else
+            # Extract the patch number and increment it
+            PATCH=$(echo "$LATEST_TAG" | awk -F. '{print $3}')
+            PATCH=$((PATCH+1))
+          fi
+
+          # Output the new version
+          VERSION="${{ env.major }}.${{ env.minor }}.$PATCH"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Determine Tag Based on Branch
+        id: set_tag
+        shell: bash
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          BRANCH="${{ github.ref }}"
+
+          if [[ "$BRANCH" == "refs/heads/main" ]]; then
+            TAG="main-$VERSION"
+          elif [[ "$BRANCH" == refs/heads/release/* ]]; then
+            TAG="release-$VERSION"
+          else
+            TAG="$VERSION"
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+  generate_chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Chart
+        shell: pwsh
+        working-directory: "deploy"
+        run: |
+          . .\generate.chart.ps1
+          Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
+
+  helm:
+    needs:
+      - generate_chart
+      - get_tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Helm Package and Push
+        uses: ./.github/actions/build-and-push-helm
+        with:
+          version: ${{ needs.get_tag.outputs.version }}
+          tag: ${{ needs.get_tag.outputs.tag }}
+          workingDirectory: "deploy/ll"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          imageName: "ll-app"

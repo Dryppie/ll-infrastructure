@@ -1,0 +1,47 @@
+name: "Helm Package and Push Action"
+description: "Packages Helm charts and pushes them to a container registry."
+
+inputs:
+  version:
+    description: "Helm chart version."
+    required: true
+  tag:
+    description: "Application version."
+    required: true
+  workingDirectory:
+    description: "Working directory."
+    required: true
+  token:
+    description: "GitHub token for authentication"
+    required: true
+  imageName:
+    description: "Name of the image"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Helm Login
+      if: ${{ success() && github.event_name != 'pull_request' }}
+      shell: bash
+      run: |
+        echo "${{ inputs.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+    - name: Package Helm Chart
+      shell: bash
+      run: |
+        helm package ${{ inputs.workingDirectory }} \
+          --version ${{ inputs.version }} \
+          --app-version ${{ inputs.tag }}
+
+    - name: set lower case owner name
+      shell: bash
+      run: |
+        echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+      env:
+        OWNER: "${{ github.repository_owner }}"
+
+    - name: Push Helm Chart
+      shell: bash
+      run: |
+        helm push ${{ inputs.imageName }}-${{ inputs.version }}.tgz oci://ghcr.io/${{ env.OWNER_LC }}/helm
