@@ -27,12 +27,6 @@ runs:
       run: |
         echo "${{ inputs.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
 
-    - name: Add Helm Repository
-      shell: bash
-      run: |
-        helm repo add dryppie-helm-repo https://ghcr.io/dryppie
-        helm repo update
-
     - name: Package Helm Chart
       shell: bash
       run: |
@@ -51,4 +45,4 @@ runs:
     - name: Push Helm Chart
       shell: bash
       run: |
-        helm push ${{ inputs.imageName }}-${{ inputs.version }}.tgz oci://ghcr.io/${{ env.OWNER_LC }}/helm
+        helm push ${{ inputs.imageName }}-${{ inputs.version }}.tgz oci://ghcr.io/${{ env.OWNER_LC }}/legends-legacy/helm
