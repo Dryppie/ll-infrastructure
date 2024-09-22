@@ -77,14 +77,7 @@ jobs:
         run: |
           . .\generate.chart.ps1
           Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
-      - name: ls
-        shell: bash
-        run: |
-          ls deploy/ll/ll-app
-      - name: cat
-        shell: bash
-        run: |
-          cat deploy/ll/ll-app/Chart.yaml
+
   helm:
     needs:
       - setup
