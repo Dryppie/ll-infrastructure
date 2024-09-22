@@ -31,6 +31,7 @@ runs:
       shell: bash
       run: |
         helm package ${{ inputs.workingDirectory }} \
+          --dependency-update \
           --version ${{ inputs.version }} \
           --app-version ${{ inputs.tag }}
 
