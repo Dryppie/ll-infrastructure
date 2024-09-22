@@ -9,20 +9,23 @@ on:
     paths:
       - environments/dev
 
+env:
+  major: 0
+  minor: 0
+
 jobs:
-  get_tag:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+      tag: ${{ steps.set_tag.outputs.tag }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Major and Minor Versions
-        run: |
-          echo "major=0" >> $GITHUB_ENV
-          echo "minor=0" >> $GITHUB_ENV
-
       - name: Get Latest Patch Version
-        id: get_version
+        id: set_version
         shell: bash
         run: |
           # Fetch all tags to ensure we have the latest
@@ -41,13 +44,14 @@ jobs:
 
           # Output the new version
           VERSION="${{ env.major }}.${{ env.minor }}.$PATCH"
+          echo "version=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Determine Tag Based on Branch
         id: set_tag
         shell: bash
         run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
+          VERSION="${{ env.version }}"
           BRANCH="${{ github.ref }}"
 
           if [[ "$BRANCH" == "refs/heads/main" ]]; then
@@ -61,16 +65,15 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
   helm:
-    needs:
-      - get_tag
+    needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Helm Package and Push
         uses: ./.github/actions/build-and-push-helm
         with:
-          version: ${{ needs.get_tag.outputs.version }}
-          tag: ${{ needs.get_tag.outputs.tag }}
+          version: ${{ needs.setup.outputs.version }}
+          tag: ${{ needs.setup.outputs.tag }}
           workingDirectory: "environments/dev"
           token: ${{ secrets.GITHUB_TOKEN }}
           imageName: "ll-platform-dev"
