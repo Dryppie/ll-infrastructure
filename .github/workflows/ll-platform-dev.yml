@@ -1,7 +1,6 @@
 name: Build ll-app for dev
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
