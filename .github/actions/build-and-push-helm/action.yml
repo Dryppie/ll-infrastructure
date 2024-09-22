@@ -26,14 +26,7 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
-    - name: ls
-      shell: bash
-      run: |
-        ls deploy/ll/ll-app
-    - name: cat
-      shell: bash
-      run: |
-        cat deploy/ll/ll-app/Chart.yaml
+
     - name: Package Helm Chart
       shell: bash
       run: |

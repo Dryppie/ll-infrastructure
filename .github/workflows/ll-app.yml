@@ -77,7 +77,11 @@ jobs:
         run: |
           . .\generate.chart.ps1
           Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
-
+      - name: Upload Helm Chart as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: deploy/ll/ll-app
   helm:
     needs:
       - setup
@@ -85,6 +89,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Download Helm Chart Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: deploy/ll/ll-app
       - name: Helm Package and Push
         uses: ./.github/actions/build-and-push-helm
         with:
