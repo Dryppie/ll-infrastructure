@@ -27,16 +27,13 @@ runs:
       run: |
         echo "${{ inputs.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
 
-    - name: check ls
-      shell: bash
-      run: |
-        ls
     - name: Package Helm Chart
       shell: bash
       run: |
         helm package ${{ inputs.workingDirectory }} \
           --version ${{ inputs.version }} \
           --app-version ${{ inputs.tag }}
+
     - name: set lower case owner name
       shell: bash
       run: |

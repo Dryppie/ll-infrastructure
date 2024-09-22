@@ -86,6 +86,6 @@ jobs:
         with:
           version: ${{ needs.get_tag.outputs.version }}
           tag: ${{ needs.get_tag.outputs.tag }}
-          workingDirectory: "deploy/ll"
+          workingDirectory: "deploy/ll/ll-app"
           token: ${{ secrets.GITHUB_TOKEN }}
           imageName: "ll-app"
