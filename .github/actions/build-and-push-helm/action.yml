@@ -30,7 +30,7 @@ runs:
     - name: Add Helm Repository
       shell: bash
       run: |
-        helm repo add dryppie-helm-repo https://ghcr.io/dryppie/helm
+        helm repo add dryppie-helm-repo https://ghcr.io/dryppie
         helm repo update
 
     - name: Package Helm Chart
