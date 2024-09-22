@@ -33,7 +33,10 @@ runs:
         helm package ${{ inputs.workingDirectory }} \
           --version ${{ inputs.version }} \
           --app-version ${{ inputs.tag }}
-
+    - name: check ls
+      shell: bash
+      run: |
+        ls
     - name: set lower case owner name
       shell: bash
       run: |
