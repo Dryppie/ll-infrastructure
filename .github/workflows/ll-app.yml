@@ -63,6 +63,7 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
   generate_chart:
+    needs: get_tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
