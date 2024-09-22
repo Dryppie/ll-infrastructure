@@ -28,6 +28,7 @@ runs:
         echo "${{ inputs.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
 
     - name: Add Helm Repository
+      shell: bash
       run: |
         helm repo add dryppie-helm-repo https://ghcr.io/dryppie/helm
         helm repo update
