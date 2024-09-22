@@ -12,8 +12,6 @@ on:
       - deploy/versions/ll-frontend.version
 
 env:
-  buildConfiguration: Release
-
   major: 0
   minor: 0
 
@@ -79,6 +77,10 @@ jobs:
         run: |
           . .\generate.chart.ps1
           Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
+      - name: ls
+        shell: bash
+        run: |
+          ls
 
   helm:
     needs:
