@@ -27,8 +27,8 @@ appVersion: "1.16.0"
 dependencies:
   - name: ll-frontend
     version: "{ll-frontend.version}"
-    repository: "oci://ghcr.io/dryppie/legends-legacy/helm"
+    repository: "oci://ghcr.io/dryppie/helm"
 
   - name: ll-backend
     version: "{ll-backend.version}"
-    repository: "oci://ghcr.io/dryppie/legends-legacy/helm"
+    repository: "oci://ghcr.io/dryppie/helm"
