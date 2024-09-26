@@ -9,6 +9,8 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
     automated: {}
   source:
     repoURL: { { .Values.argocd.repoURL } }
