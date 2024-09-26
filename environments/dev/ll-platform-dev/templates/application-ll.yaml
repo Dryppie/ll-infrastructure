@@ -34,8 +34,8 @@ spec:
             OIDC__Authority:
               value: ""
 
-            OIDC__Audience:
-              value: "account"
+            # OIDC__Audience:
+            #   value: "account"
 
             FeatureManagement__AllowAnonymous:
               value: "true"
