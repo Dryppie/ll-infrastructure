@@ -14,7 +14,7 @@ spec:
     automated:
       selfHeal: false
   source:
-    repoURL: {{ .Values.argocd.repoURL }}
+    repoURL: ghcr.io/dryppie
     targetRevision: 0.0.*
     chart: helm/ll-app
     helm:
