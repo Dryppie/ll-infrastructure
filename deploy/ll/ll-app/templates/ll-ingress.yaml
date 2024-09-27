@@ -6,20 +6,20 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: {{ .Values.environmentHost }}
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: ll-app-ll-backend
-                port:
-                  number: 80
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ll-app-ll-frontend
-                port:
-                  number: 80
+  - host: {{ .Values.environmentHost }}
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: ll-app-ll-backend
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ll-app-ll-frontend
+            port:
+              number: 80

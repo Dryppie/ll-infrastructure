@@ -34,11 +34,5 @@ spec:
             ASPNETCORE_ENVIRONMENT:
               value: Development
 
-            # OIDC__Authority:
-            #   value: ""
-
-            # OIDC__Audience:
-            #   value: "account"
-
             FeatureManagement__AllowAnonymous:
               value: "true"
