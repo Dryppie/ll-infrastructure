@@ -43,7 +43,7 @@ runs:
         echo "Extracting Helm chart contents:"
         tar -xvzf ./*.tgz
         echo "Displaying Helm chart files:"
-        find . -type f -name "*.yaml" -exec cat {} \;
+        find ${{ inputs.workingDirectory }} -type f -name "*.yaml" -exec cat {} \;
 
     - name: set lower case owner name
       shell: bash
