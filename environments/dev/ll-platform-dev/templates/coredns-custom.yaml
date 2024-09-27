@@ -5,4 +5,4 @@ metadata:
   namespace: kube-system
 data:
   frontend.override: |
-    rewrite name dev.legends-legacy.com traefik.kube-system.svc.cluster.local
+    rewrite name dev-legends-legacy.com traefik.kube-system.svc.cluster.local

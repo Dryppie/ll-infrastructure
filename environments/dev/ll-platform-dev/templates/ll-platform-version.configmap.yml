@@ -4,5 +4,5 @@ metadata:
   name: ll-platform-version
   namespace: ll
 data:
-  ll-platform-version: { { .Chart.Version } }
+  ll-platform-version: {{ .Chart.Version }}
   ll-platform-name: dev
