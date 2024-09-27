@@ -34,6 +34,8 @@ runs:
           --dependency-update \
           --version ${{ inputs.version }} \
           --app-version ${{ inputs.tag }}
+        echo "Packaged Helm Chart:"
+        ls -lh *.tgz  # List the packaged chart with file size details
 
     - name: set lower case owner name
       shell: bash
