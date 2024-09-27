@@ -1,2 +1,2 @@
 argocd:
-  repoURL: oci://ghcr.io/dryppie
+  repoURL: ghcr.io/dryppie
