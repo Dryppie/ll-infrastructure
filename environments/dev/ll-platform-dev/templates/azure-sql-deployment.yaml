@@ -29,7 +29,7 @@ spec:
               key: password
         volumeMounts:
         - name: mssql-persistent-storage
-          mountPath: /var/opt/mssql
+          mountPath: /var/opt/mssql/data
         securityContext:
           runAsUser: 10001   # Default MSSQL non-root user
           runAsGroup: 0       # MSSQL group
