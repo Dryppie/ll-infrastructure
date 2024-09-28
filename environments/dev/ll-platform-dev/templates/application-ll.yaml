@@ -34,5 +34,11 @@ spec:
             ASPNETCORE_ENVIRONMENT:
               value: Development
 
+            ConnectionStrings__LegendsLegacyDB:
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-db-ll-connection
+                  key: connectionString
+
             FeatureManagement__AllowAnonymous:
               value: "true"
