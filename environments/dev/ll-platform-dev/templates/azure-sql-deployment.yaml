@@ -26,7 +26,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: mssql-secret
-              key: SA_PASSWORD
+              key: password
         volumeMounts:
         - name: mssql-persistent-storage
           mountPath: /var/opt/mssql
