@@ -1,22 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mssql-deployment
+  name: azure-sql-edge-deployment
   namespace: mssql
 spec:
   selector:
     matchLabels:
-      app: mssql
-  strategy:
-    type: Recreate
+      app: azure-sql-edge
   template:
     metadata:
       labels:
-        app: mssql
+        app: azure-sql-edge
     spec:
       containers:
-      - name: mssql
-        image: mcr.microsoft.com/mssql/server:2019-latest
+      - name: azure-sql-edge
+        image: mcr.microsoft.com/azure-sql-edge:latest
         ports:
         - containerPort: 1433
         env:
@@ -34,6 +32,7 @@ spec:
       - name: mssql-persistent-storage
         persistentVolumeClaim:
           claimName: mssql-pv-claim
+
 ---
 apiVersion: v1
 kind: Service
