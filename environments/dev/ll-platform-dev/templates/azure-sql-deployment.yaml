@@ -1,19 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: azure-sql-edge-deployment
-  namespace: mssql
+  name: mssql-deployment
 spec:
   selector:
     matchLabels:
-      app: azure-sql-edge
+      app: mssql
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
-        app: azure-sql-edge
+        app: mssql
     spec:
       containers:
-      - name: azure-sql-edge
+      - name: mssql
         image: mcr.microsoft.com/azure-sql-edge:latest
         ports:
         - containerPort: 1433
@@ -24,15 +25,18 @@ spec:
           valueFrom:
             secretKeyRef:
               name: mssql-secret
-              key: password
+              key: SA_PASSWORD
         volumeMounts:
         - name: mssql-persistent-storage
           mountPath: /var/opt/mssql
+        securityContext:
+          runAsUser: 10001   # Default MSSQL non-root user
+          runAsGroup: 0       # MSSQL group
+          fsGroup: 10001      # Ensures that the `mssql` user has access to mounted volumes
       volumes:
       - name: mssql-persistent-storage
         persistentVolumeClaim:
           claimName: mssql-pv-claim
-
 ---
 apiVersion: v1
 kind: Service
@@ -58,4 +62,4 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 16Gi
