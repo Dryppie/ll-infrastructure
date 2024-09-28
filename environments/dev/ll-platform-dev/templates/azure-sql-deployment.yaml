@@ -1,21 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: azure-sql-edge-deployment
+  name: azure-sql-edge
   namespace: mssql
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: mssql
-  strategy:
-    type: Recreate
+      app: azure-sql-edge
   template:
     metadata:
       labels:
-        app: mssql
+        app: azure-sql-edge
     spec:
       containers:
-      - name: mssql
+      - name: azure-sql-edge
         image: mcr.microsoft.com/azure-sql-edge:latest
         ports:
         - containerPort: 1433
@@ -27,17 +26,20 @@ spec:
             secretKeyRef:
               name: mssql-secret
               key: password
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
         volumeMounts:
-        - name: mssql-persistent-storage
-          mountPath: /var/opt/mssql/data
-        securityContext:
-          runAsUser: 10001   # Default MSSQL non-root user
-          runAsGroup: 0       # MSSQL group
-          fsGroup: 10001      # Ensures that the `mssql` user has access to mounted volumes
+        - name: mssql-data
+          mountPath: /var/opt/mssql
       volumes:
-      - name: mssql-persistent-storage
+      - name: mssql-data
         persistentVolumeClaim:
-          claimName: mssql-pv-claim
+          claimName: mssql-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -51,16 +53,29 @@ spec:
     targetPort: 1433
     nodePort: 30000 # Choose a NodePort between 30000-32767
   selector:
-    app: mssql
+    app: azure-sql-edge
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mssql-pv
+  namespace: mssql
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/mssql"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mssql-pv-claim
+  name: mssql-pvc
   namespace: mssql
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 16Gi
+      storage: 5Gi
