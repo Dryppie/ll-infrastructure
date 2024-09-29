@@ -20,7 +20,7 @@ spec:
     helm:
       values: |
         #
-        environmentHost: dev-legends-legacy.com
+        environmentHost: dev.legends-legacy.com
 
         ll-frontend:
           env:
