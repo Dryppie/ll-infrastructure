@@ -27,8 +27,6 @@ spec:
               value: "dev"
             allowAnonymous:
               value: "true"
-            apiUrl:
-              value: "http://ll-app-ll-backend.ll.svc.cluster.local:80/v1/api"
 
         ll-backend:
           env:
