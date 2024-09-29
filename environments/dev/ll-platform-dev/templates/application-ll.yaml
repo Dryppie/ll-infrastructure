@@ -11,8 +11,7 @@ spec:
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
-    automated:
-      selfHeal: false
+    automated: {}
   source:
     repoURL: {{ .Values.argocd.repoURL }}
     targetRevision: 0.0.*
