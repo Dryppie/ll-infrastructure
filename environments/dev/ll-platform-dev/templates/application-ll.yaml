@@ -42,4 +42,4 @@ spec:
                   key: connectionString
 
             FeatureManagement__AllowAnonymous:
-              value: "false"
+              value: "true"
