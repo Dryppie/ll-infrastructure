@@ -12,6 +12,7 @@ data:
     ingress:
     - hostname: dev.legends-legacy.com
       service: http://ll-app-ll-frontend.ll.svc.cluster.local:80
-    - hostname: dev.legends-legacy.com/api
+    - hostname: dev.legends-legacy.com
+      path: /api/*
       service: http://ll-app-ll-backend.ll.svc.cluster.local:80
     - service: http_status:404
