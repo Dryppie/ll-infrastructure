@@ -11,5 +11,5 @@ data:
     no-autoupdate: true
     ingress:
     - hostname: dev.legends-legacy.com
-      service: http://ll-app-ll-frontend.ll.svc.cluster.local:80
+      service: http://traefik.kube-system.svc.cluster.local:80
     - service: http_status:404
