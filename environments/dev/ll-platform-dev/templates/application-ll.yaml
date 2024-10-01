@@ -34,11 +34,11 @@ spec:
               value: Development
 
             Database__Type:
-              value: "MariaDb"
+              value: "PostgreSql"
             Database__ConnectionStrings__LegendsLegacyDB:
               valueFrom:
                 secretKeyRef:
-                  name: mariadb-ll-connection
+                  name: postgresql-ll-connection
                   key: connectionString
 
             FeatureManagement__AllowAnonymous:

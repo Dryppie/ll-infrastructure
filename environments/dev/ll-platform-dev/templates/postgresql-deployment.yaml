@@ -1,60 +1,67 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mariadb
+  name: postgresql
   namespace: database
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mariadb
+      app: postgresql
   template:
     metadata:
       labels:
-        app: mariadb
+        app: postgresql
     spec:
       containers:
-      - name: mariadb
-        image: mariadb:latest
+      - name: postgresql
+        image: postgres:latest
         ports:
-        - containerPort: 3306
+        - containerPort: 5432
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mariadb-secret
+              name: postgresql-secret
               key: password
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: username
+        - name: POSTGRES_DB
+          value: mydatabase
         resources:
           requests:
             memory: "2Gi"
           limits:
             memory: "3Gi"
         volumeMounts:
-        - name: mariadb-data
-          mountPath: /var/lib/mysql
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
       volumes:
-      - name: mariadb-data
+      - name: postgresql-data
         persistentVolumeClaim:
-          claimName: mariadb-pvc
+          claimName: postgresql-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadb-service
+  name: postgresql-service
   namespace: database
 spec:
   type: NodePort
   ports:
-  - port: 3306
-    targetPort: 3306
-    nodePort: 30000
+  - port: 5432
+    targetPort: 5432
+    nodePort: 30001
   selector:
-    app: mariadb
+    app: postgresql
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: mariadb-pv
+  name: postgresql-pv
   namespace: database
 spec:
   capacity:
@@ -62,12 +69,12 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/mnt/data/mariadb"
+    path: "/mnt/data/postgresql"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mariadb-pvc
+  name: postgresql-pvc
   namespace: database
 spec:
   accessModes:
