@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adminer
+  namespace: database  # Ensure it's deployed in the same namespace or adjust networking rules if different
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adminer
+  template:
+    metadata:
+      labels:
+        app: adminer
+    spec:
+      containers:
+      - name: adminer
+        image: adminer:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ADMINER_DEFAULT_SERVER
+          value: "mariadb-service.database.svc.cluster.local"  # Set the database host correctly
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adminer
+  namespace: database  # Ensure it's in the same namespace
+spec:
+  selector:
+    app: adminer
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: NodePort
