@@ -22,12 +22,12 @@ spec:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mariadb-pvc
+              name: pgadmin-secret
               key: password
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
-              name: mariadb-pvc
+              name: pgadmin-secret
               key: username
         - name: POSTGRES_DB
           value: mydatabase
