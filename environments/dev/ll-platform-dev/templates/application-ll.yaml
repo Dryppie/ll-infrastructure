@@ -33,12 +33,10 @@ spec:
             ASPNETCORE_ENVIRONMENT:
               value: Development
 
-            Database__Type:
-              value: "PostgreSql"
-            Database__ConnectionStrings__LegendsLegacyDB:
+            ConnectionStrings__LegendsLegacyDB:
               valueFrom:
                 secretKeyRef:
-                  name: postgresql-ll-connection
+                  name: mssql-ll-connection
                   key: connectionString
 
             FeatureManagement__AllowAnonymous:
