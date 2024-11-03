@@ -27,6 +27,8 @@ spec:
               value: "dev"
             allowAnonymous:
               value: "true"
+            isLocal:
+              value: "false"
 
         ll-backend:
           env:
