@@ -44,13 +44,13 @@ spec:
             FeatureManagement__AllowAnonymous:
               value: "true"
 
-        ll-chat:
-          env:
-            ASPNETCORE_ENVIRONMENT:
-              value: Development
+        # ll-chat:
+        #   env:
+        #     ASPNETCORE_ENVIRONMENT:
+        #       value: Development
 
-            ConnectionStrings__LLChatDB:
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-ll-connection
-                  key: connectionString
+        #     ConnectionStrings__LLChatDB:
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: postgres-ll-connection
+        #           key: connectionString

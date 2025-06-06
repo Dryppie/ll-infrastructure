@@ -13,6 +13,6 @@ ll-backend:
   imagePullSecrets:
     - name: regcred
 
-ll-chat:
-  imagePullSecrets:
-    - name: regcred
+# ll-chat:
+#   imagePullSecrets:
+#     - name: regcred

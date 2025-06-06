@@ -33,6 +33,6 @@ dependencies:
     version: "{ll-backend.version}"
     repository: "oci://ghcr.io/dryppie/helm"
 
-  - name: ll-chat
-    version: "{ll-chat.version}"
-    repository: "oci://ghcr.io/dryppie/helm"
+  # - name: ll-chat
+  #   version: "{ll-chat.version}"
+  #   repository: "oci://ghcr.io/dryppie/helm"
