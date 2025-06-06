@@ -1,4 +1,4 @@
-name: Build ll-app for dev
+name: Build ll-platform-dev
 
 on:
   workflow_dispatch:

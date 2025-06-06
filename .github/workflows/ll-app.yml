@@ -80,7 +80,7 @@ jobs:
         working-directory: "deploy"
         run: |
           . .\generate.chart.ps1
-          Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend', 'll-chat'
+          Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
       - name: Upload Helm Chart as Artifact
         uses: actions/upload-artifact@v4
         with:
