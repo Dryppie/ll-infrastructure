@@ -16,7 +16,7 @@ spec:
                 name: ll-app-ll-backend
                 port:
                   number: 80
-          - path: /hub
+          - path: /chat
             pathType: Prefix
             backend:
               service:
