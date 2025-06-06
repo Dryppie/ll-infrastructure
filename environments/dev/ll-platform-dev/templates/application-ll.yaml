@@ -29,8 +29,6 @@ spec:
               value: "true"
             isLocal:
               value: "false"
-            chatApiRoot:
-              value: ""
 
         ll-backend:
           env:
