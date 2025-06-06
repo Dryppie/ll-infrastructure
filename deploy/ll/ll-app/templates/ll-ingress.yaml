@@ -9,18 +9,18 @@ spec:
     - host: {{ .Values.environmentHost }}
       http:
         paths:
-          - path: /chat
-            pathType: Prefix
-            backend:
-              service:
-                name: ll-app-ll-chat
-                port:
-                  number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
                 name: ll-app-ll-backend
+                port:
+                  number: 80
+          - path: /hub
+            pathType: Prefix
+            backend:
+              service:
+                name: ll-app-ll-chat
                 port:
                   number: 80
           - path: /
