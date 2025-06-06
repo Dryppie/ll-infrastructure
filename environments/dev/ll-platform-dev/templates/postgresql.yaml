@@ -29,15 +29,54 @@ spec:
 ---
 
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: ll
+data:
+  10-create-extra-dbs.sh: |
+    #!/bin/bash
+    set -e
+    echo "Creating extra databases and roles …"
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+      -- 📂 Game service
+      CREATE DATABASE lldb_game;
+      CREATE USER gameuser WITH ENCRYPTED PASSWORD 'gAm3P@ss!';
+      GRANT ALL PRIVILEGES ON DATABASE lldb_game TO gameuser;
+
+      -- 💬 Chat service
+      CREATE DATABASE lldb_chat;
+      CREATE USER chatuser WITH ENCRYPTED PASSWORD 'Ch@tP@ss!';
+      GRANT ALL PRIVILEGES ON DATABASE lldb_chat TO chatuser;
+    EOSQL
+
+---
+
+apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-credentials
+  name: postgres-game-connection
   namespace: ll
 type: Opaque
 stringData:
-  POSTGRES_USER: devuser
-  POSTGRES_PASSWORD: S3cr3tP4ss!
-  POSTGRES_DB: legendslegacy
+  connectionString: |
+    Host=postgres;Port=5432;
+    Username=gameuser;Password=gAm3P@ss!;
+    Database=lldb_game
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-chat-connection
+  namespace: ll
+type: Opaque
+stringData:
+  connectionString: |
+    Host=postgres;Port=5432;
+    Username=chatuser;Password=Ch@tP@ss!;
+    Database=lldb_chat
 
 ---
 
