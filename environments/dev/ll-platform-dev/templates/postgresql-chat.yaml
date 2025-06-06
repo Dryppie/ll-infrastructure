@@ -4,6 +4,7 @@ metadata:
   name: postgres-chat-data
   namespace: ll
 spec:
+  volumeName: postgres-chat-pv
   accessModes:
     - ReadWriteOnce
   resources:
@@ -84,12 +85,12 @@ spec:
           # Basic health checks
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "devuser"]
+              command: ["pg_isready", "-U", "chatuser"]
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "devuser"]
+              command: ["pg_isready", "-U", "chatuser"]
             initialDelaySeconds: 5
             periodSeconds: 10
 
