@@ -14,7 +14,7 @@ spec:
     automated: {}
   source:
     repoURL: {{ .Values.argocd.repoURL }}
-    targetRevision: 0.0.*
+    targetRevision: 0.1.*
     chart: helm/ll-app
     helm:
       values: |
