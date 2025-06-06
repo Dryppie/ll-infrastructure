@@ -44,7 +44,7 @@ stringData:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-chat-ll-connection
+  name: postgres-chat-connection
   namespace: ll
 type: Opaque
 stringData:
