@@ -40,7 +40,7 @@ spec:
             ConnectionStrings__LegendsLegacyDB:
               valueFrom:
                 secretKeyRef:
-                  name: postgres-game-connection
+                  name: postgres-ll-connection
                   key: connectionString
 
             FeatureManagement__AllowAnonymous:
