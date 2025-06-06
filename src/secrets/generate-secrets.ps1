@@ -1,7 +1,7 @@
 . $PSScriptRoot/generate-secrets.functions.ps1
 
 $gitRoot = git rev-parse --show-toplevel
-$gitRoot2 = $gitRoot.Replace('C:/', '/mnt/host/c/')
+$gitRoot2 = $gitRoot.Replace('C:/', '/mnt/c/')
  
 Set-SealedSecrets -vault "legends-legacy-dev" -env "dev" -outputpath "$gitRoot/environments/dev/ll-platform-dev/templates/secrets" -certpath "$gitRoot2/environments/dev/kubeseal.cer" 
 
