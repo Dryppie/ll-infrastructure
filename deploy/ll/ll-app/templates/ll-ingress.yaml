@@ -16,13 +16,13 @@ spec:
                 name: ll-app-ll-backend
                 port:
                   number: 80
-          # - path: /chat
-          #   pathType: Prefix
-          #   backend:
-          #     service:
-          #       name: ll-app-ll-chat
-          #       port:
-          #         number: 80
+          - path: /chat
+            pathType: Prefix
+            backend:
+              service:
+                name: ll-app-ll-chat
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
