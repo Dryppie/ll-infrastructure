@@ -78,9 +78,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
-            - name: config
-              mountPath: /etc/postgresql
-              readOnly: true
 
       volumes:
         - name: data
