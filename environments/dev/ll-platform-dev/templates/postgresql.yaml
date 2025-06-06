@@ -12,6 +12,22 @@ spec:
   storageClassName: "" # default StorageClass
 
 ---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/postgres  # Make sure this directory exists on your node(s)
+  persistentVolumeReclaimPolicy: Retain
+
+---
+
 apiVersion: v1
 kind: Secret
 metadata:
@@ -24,6 +40,7 @@ stringData:
   POSTGRES_DB: legendslegacy
 
 ---
+
 apiVersion: v1
 kind: Secret
 metadata:
@@ -34,6 +51,7 @@ stringData:
   connectionString: "Host=postgres;Port=5432;Username=devuser;Password=S3cr3tP4ss!;Database=legendslegacy"
 
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
