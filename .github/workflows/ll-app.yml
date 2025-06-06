@@ -9,6 +9,7 @@ on:
     paths:
       - deploy/ll/ll-app
       - deploy/versions/ll-backend.version
+      - deploy/versions/ll-chat.version
       - deploy/versions/ll-frontend.version
 
 env:
@@ -79,7 +80,7 @@ jobs:
         working-directory: "deploy"
         run: |
           . .\generate.chart.ps1
-          Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend'
+          Set-Chart -chartPath 'deploy/ll/ll-app' -components 'll-frontend', 'll-backend', 'll-chat'
       - name: Upload Helm Chart as Artifact
         uses: actions/upload-artifact@v4
         with:

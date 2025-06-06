@@ -7,9 +7,12 @@ environmentHost: ""
 
 ll-frontend:
   imagePullSecrets:
-  - name: regcred
+    - name: regcred
 
 ll-backend:
   imagePullSecrets:
-  - name: regcred
+    - name: regcred
 
+ll-chat:
+  imagePullSecrets:
+    - name: regcred
