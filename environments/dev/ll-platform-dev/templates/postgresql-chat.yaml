@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-data
+  name: postgres-chat-data
   namespace: ll
 spec:
   accessModes:
@@ -16,101 +16,70 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: postgres-pv
+  name: postgres-chat-pv
 spec:
   capacity:
     storage: 5Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /mnt/data/postgres  # Make sure this directory exists on your node(s)
+    path: /mnt/data/postgres-chat  # Make sure this directory exists on your node(s)
   persistentVolumeReclaimPolicy: Retain
 
 ---
 
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: postgres-initdb
-  namespace: ll
-data:
-  10-create-extra-dbs.sh: |
-    #!/bin/bash
-    set -e
-    echo "Creating extra databases and roles …"
-
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-      CREATE DATABASE lldb_chat;
-      CREATE USER chatuser WITH ENCRYPTED PASSWORD 'Ch@tP@ss!';
-      GRANT ALL PRIVILEGES ON DATABASE lldb_chat TO chatuser;
-    EOSQL
-
----
-apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-chat-connection
+  name: postgres-chat-credentials
   namespace: ll
 type: Opaque
 stringData:
-  connectionString: |
-    Host=postgres;Port=5432;
-    Username=chatuser;Password=Ch@tP@ss!;
-    Database=lldb_chat
----
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-credentials
-  namespace: ll
-type: Opaque
-stringData:
-  POSTGRES_USER: devuser
-  POSTGRES_PASSWORD: S3cr3tP4ss!
-  POSTGRES_DB: legendslegacy
+  POSTGRES_USER: chatuser
+  POSTGRES_PASSWORD: Ch@tSecret!
+  POSTGRES_DB: llchat
 
 ---
 
 apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-ll-connection
+  name: postgres-chat-ll-connection
   namespace: ll
 type: Opaque
 stringData:
-  connectionString: "Host=postgres;Port=5432;Username=devuser;Password=S3cr3tP4ss!;Database=legendslegacy"
+  connectionString: "Host=postgres-chat;Port=5432;Username=chatuser;Password=Ch@tSecret!;Database=llchat"
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: postgres-chat
   namespace: ll
 spec:
   selector:
     matchLabels:
-      app: postgres
+      app: postgres-chat
   replicas: 1 # bump for read-only scale-out (+replication)
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres-chat
     spec:
       containers:
-        - name: postgres
+        - name: postgres-chat
           image: postgres:15
           imagePullPolicy: IfNotPresent
 
           # Environment comes straight from the Secret
           envFrom:
             - secretRef:
-                name: postgres-credentials
+                name: postgres-chat-credentials
 
           ports:
             - containerPort: 5432
-              name: postgres
+              name: postgres-chat
 
           # Basic health checks
           livenessProbe:
@@ -127,30 +96,24 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
-            - name: initdb-scripts
-              mountPath: /docker-entrypoint-initdb.d
 
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: postgres-data
-        - name: initdb-scripts
-          configMap:
-            name: postgres-initdb
-            defaultMode: 0755 
+            claimName: postgres-chat-data
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-chat
   namespace: ll
 spec:
   selector:
-    app: postgres
+    app: postgres-chat
   ports:
-    - name: postgres
+    - name: postgres-chat
       port: 5432
       targetPort: 5432
   type: ClusterIP
