@@ -1,16 +1,16 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: init-myseconddb        # keep names self-describing
+  name: init-myseconddb
   namespace: ll
 spec:
-  ttlSecondsAfterFinished: 300 # auto-prune the pod five minutes after success
+  ttlSecondsAfterFinished: 300
   template:
     spec:
-      restartPolicy: OnFailure # retries if the DB wasn’t ready yet
+      restartPolicy: OnFailure
       containers:
       - name: createdb
-        image: postgres:15     # same major version as your server
+        image: postgres:15
         env:
         - name: PGPASSWORD
           valueFrom:
@@ -21,11 +21,16 @@ spec:
         - bash
         - -c
         - |
-          # Only create it if it doesn’t exist
-          psql -h postgres -U devuser -tc \
-               "SELECT 1 FROM pg_database WHERE datname = 'myseconddb'" \
+          # always connect to an existing database, e.g. "postgres"
+          PGHOST=postgres
+          PGUSER=devuser
+          PGDATABASE=postgres
+
+          # idempotent create
+          psql -tc "SELECT 1 FROM pg_database WHERE datname = 'myseconddb'" \
           | grep -q 1 || \
-          psql -h postgres -U devuser -c "CREATE DATABASE myseconddb;"
+          psql -c "CREATE DATABASE myseconddb;"
+
 
 ---
 
