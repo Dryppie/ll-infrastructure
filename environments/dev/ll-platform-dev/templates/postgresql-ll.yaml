@@ -1,120 +1,171 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-data
-  namespace: ll
-spec:
-  volumeName: postgres-pv
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi # resize later if needed
-  storageClassName: "" # default StorageClass
-
----
-
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: postgres-pv
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/postgres-ll  # Make sure this directory exists on your node(s)
-  persistentVolumeReclaimPolicy: Retain
-
----
-
-apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-credentials
+  name: postgres-ll-connection        # <-- referenced by ll-backend Helm values
   namespace: ll
 type: Opaque
 stringData:
-  POSTGRES_USER: devuser
-  POSTGRES_PASSWORD: S3cr3tP4ss!
-  POSTGRES_DB: legendslegacy
+  # Npgsql style, works for EF Core; change user / pass / db
+  connectionString: |
+    Host=postgres-ll;Port=5432;Database=legends_legacy;Username=ll_user;Password=sup3rSecr3t;Pooling=true;Ssl Mode=Disable
 
 ---
-
 apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-ll-connection
+  name: postgres-chat-connection      # <-- referenced by ll-chat Helm values
   namespace: ll
 type: Opaque
 stringData:
-  connectionString: "Host=postgres;Port=5432;Username=devuser;Password=S3cr3tP4ss!;Database=legendslegacy"
+  connectionString: |
+    Host=postgres-chat;Port=5432;Database=ll_chat;Username=chat_user;Password=an0th3rSecr3t;Pooling=true;Ssl Mode=Disable
 
 ---
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: ll
-spec:
-  selector:
-    matchLabels:
-      app: postgres
-  replicas: 1 # bump for read-only scale-out (+replication)
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:15
-          imagePullPolicy: IfNotPresent
-
-          # Environment comes straight from the Secret
-          envFrom:
-            - secretRef:
-                name: postgres-credentials
-
-          ports:
-            - containerPort: 5432
-              name: postgres
-
-          # Basic health checks
-          livenessProbe:
-            exec:
-              command: ["pg_isready", "-U", "devuser"]
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            exec:
-              command: ["pg_isready", "-U", "devuser"]
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          volumeMounts:
-            - name: data
-              mountPath: /var/lib/postgresql/data
-
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: postgres-data
-
----
-
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-ll
+  namespace: ll
+labels:
+  app: postgres-ll
+spec:
+  clusterIP: None                     # headless so each pod gets a DNS A-record
+  ports:
+  - port: 5432
+    name: postgres
+  selector:
+    app: postgres-ll
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-chat
+  namespace: ll
+labels:
+  app: postgres-chat
+spec:
+  clusterIP: None
+  ports:
+  - port: 5432
+    name: postgres
+  selector:
+    app: postgres-chat
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-ll
   namespace: ll
 spec:
+  serviceName: postgres-ll            # MUST match Service above
+  replicas: 1                         # scale up only if you understand PG clustering
   selector:
-    app: postgres
-  ports:
-    - name: postgres
-      port: 5432
-      targetPort: 5432
-  type: ClusterIP
+    matchLabels:
+      app: postgres-ll
+  template:
+    metadata:
+      labels:
+        app: postgres-ll
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: legends_legacy
+        - name: POSTGRES_USER
+          value: ll_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-ll-connection
+              key: connectionString         # parsed by bash below
+        - name: PGDATA                      # store data in a sub-dir so init scripts persist
+          value: /var/lib/postgresql/data/pgdata
+        # Extract password from the full conn-string (first run only)
+        # NB you could instead store plain POSTGRES_PASSWORD in the Secret.
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh","-c","export PGPASS=$(echo $POSTGRES_PASSWORD | sed -E 's/.*Password=([^;]*).*/\\1/'); sed -i \"s/^\(POSTGRES_PASSWORD=\).*/\\1$PGPASS/\" /docker-entrypoint.sh"]
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp2             # or whatever class your cluster offers
+      resources:
+        requests:
+          storage: 8Gi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-chat
+  namespace: ll
+spec:
+  serviceName: postgres-chat
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-chat
+  template:
+    metadata:
+      labels:
+        app: postgres-chat
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: ll_chat
+        - name: POSTGRES_USER
+          value: chat_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-chat-connection
+              key: connectionString
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh","-c","export PGPASS=$(echo $POSTGRES_PASSWORD | sed -E 's/.*Password=([^;]*).*/\\1/'); sed -i \"s/^\(POSTGRES_PASSWORD=\).*/\\1$PGPASS/\" /docker-entrypoint.sh"]
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp2
+      resources:
+        requests:
+          storage: 8Gi
