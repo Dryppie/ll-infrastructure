@@ -40,7 +40,7 @@ spec:
             ConnectionStrings__LegendsLegacyDB:
               valueFrom:
                 secretKeyRef:
-                  name: postgres-ll-credentials
+                  name: postgres-ll-connection
                   key: connectionString
 
             FeatureManagement__AllowAnonymous:
@@ -54,5 +54,5 @@ spec:
             ConnectionStrings__LLChatDB:
               valueFrom:
                 secretKeyRef:
-                  name: postgres-chat-credentials
+                  name: postgres-chat-connection
                   key: connectionString

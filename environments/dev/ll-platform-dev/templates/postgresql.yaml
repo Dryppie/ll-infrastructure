@@ -1,0 +1,162 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-myseconddb        # keep names self-describing
+  namespace: ll
+spec:
+  ttlSecondsAfterFinished: 300 # auto-prune the pod five minutes after success
+  template:
+    spec:
+      restartPolicy: OnFailure # retries if the DB wasn’t ready yet
+      containers:
+      - name: createdb
+        image: postgres:15     # same major version as your server
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: POSTGRES_PASSWORD
+        command:
+        - bash
+        - -c
+        - |
+          # Only create it if it doesn’t exist
+          psql -h postgres -U devuser -tc \
+               "SELECT 1 FROM pg_database WHERE datname = 'myseconddb'" \
+          | grep -q 1 || \
+          psql -h postgres -U devuser -c "CREATE DATABASE myseconddb;"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: ll
+spec:
+  volumeName: postgres-pv
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi # resize later if needed
+  storageClassName: "" # default StorageClass
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/postgres-ll  # Make sure this directory exists on your node(s)
+  persistentVolumeReclaimPolicy: Retain
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: ll
+type: Opaque
+stringData:
+  POSTGRES_USER: devuser
+  POSTGRES_PASSWORD: S3cr3tP4ss!
+  POSTGRES_DB: legendslegacy
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-ll-connection
+  namespace: ll
+type: Opaque
+stringData:
+  connectionString: "Host=postgres;Port=5432;Username=devuser;Password=S3cr3tP4ss!;Database=legendslegacy"
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-chat-connection
+  namespace: ll
+type: Opaque
+stringData:
+  connectionString: "Host=postgres;Port=5432;Username=devuser;Password=S3cr3tP4ss!;Database=myseconddb"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: ll
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  replicas: 1 # bump for read-only scale-out (+replication)
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          imagePullPolicy: IfNotPresent
+
+          # Environment comes straight from the Secret
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+
+          ports:
+            - containerPort: 5432
+              name: postgres
+
+          # Basic health checks
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "devuser"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "devuser"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: ll
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
