@@ -12,6 +12,12 @@ spec:
       - name: createdb
         image: postgres:15
         env:
+        - name: PGHOST
+          value: postgres
+        - name: PGUSER
+          value: devuser
+        - name: PGDATABASE
+          value: postgres
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
@@ -19,17 +25,15 @@ spec:
               key: POSTGRES_PASSWORD
         command:
         - bash
-        - -c
+        - -ec
         - |
-          # always connect to an existing database, e.g. "postgres"
-          PGHOST=postgres
-          PGUSER=devuser
-          PGDATABASE=postgres
-
-          # idempotent create
-          psql -tc "SELECT 1 FROM pg_database WHERE datname = 'myseconddb'" \
-          | grep -q 1 || \
-          psql -c "CREATE DATABASE myseconddb;"
+          # Does myseconddb already exist?
+          if psql -tAc "SELECT 1 FROM pg_database WHERE datname = 'myseconddb'" | grep -q 1; then
+              echo "myseconddb already exists - nothing to do"
+          else
+              echo "Creating database myseconddb"
+              psql -c "CREATE DATABASE myseconddb;"
+          fi
 
 
 ---
