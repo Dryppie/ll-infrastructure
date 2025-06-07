@@ -26,6 +26,21 @@ spec:
 
 ---
 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-ll-credentials
+  namespace: ll
+type: Opaque
+stringData:
+  POSTGRES_USER: ll_user
+  POSTGRES_PASSWORD: sup3rSecr3t
+  POSTGRES_DB: legends_legacy
+  connectionString: |
+    Host=postgres-ll;Port=5432;Database=legends_legacy;Username=ll_user;Password=sup3rSecr3t;Pooling=true;Ssl Mode=Disable
+
+---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -47,24 +62,12 @@ spec:
         image: postgres:16-alpine
         ports:
         - containerPort: 5432
+        envFrom:
+          - secretRef:
+              name: postgres-chat-credentials
         env:
-        - name: POSTGRES_DB
-          value: legends_legacy
-        - name: POSTGRES_USER
-          value: ll_user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-ll-connection
-              key: connectionString         # parsed by bash below
-        - name: PGDATA                      # store data in a sub-dir so init scripts persist
-          value: /var/lib/postgresql/data/pgdata
-        # Extract password from the full conn-string (first run only)
-        # NB you could instead store plain POSTGRES_PASSWORD in the Secret.
-        lifecycle:
-          postStart:
-            exec:
-              command: ["/bin/sh","-c","export PGPASS=$(echo $POSTGRES_PASSWORD | sed -E 's/.*Password=([^;]*).*/\\1/'); sed -i \"s/^\(POSTGRES_PASSWORD=\).*/\\1$PGPASS/\" /docker-entrypoint.sh"]
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data

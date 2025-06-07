@@ -26,6 +26,21 @@ spec:
 
 ---
 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-chat-credentials
+  namespace: ll
+type: Opaque
+stringData:
+  POSTGRES_USER: chat_user
+  POSTGRES_PASSWORD: an0th3rSecr3t
+  POSTGRES_DB: ll_chat
+  connectionString: |
+    Host=postgres-chat;Port=5432;Database=ll_chat;Username=chat_user;Password=an0th3rSecr3t;Pooling=true;Ssl Mode=Disable
+
+---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -47,22 +62,9 @@ spec:
         image: postgres:16-alpine
         ports:
         - containerPort: 5432
-        env:
-        - name: POSTGRES_DB
-          value: ll_chat
-        - name: POSTGRES_USER
-          value: chat_user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-chat-connection
-              key: connectionString
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
-        lifecycle:
-          postStart:
-            exec:
-              command: ["/bin/sh","-c","export PGPASS=$(echo $POSTGRES_PASSWORD | sed -E 's/.*Password=([^;]*).*/\\1/'); sed -i \"s/^\(POSTGRES_PASSWORD=\).*/\\1$PGPASS/\" /docker-entrypoint.sh"]
+        envFrom:
+          - secretRef:
+              name: postgres-chat-credentials
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
