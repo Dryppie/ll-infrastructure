@@ -31,6 +31,8 @@ spec:
               value: "false"
             chatApiRoot:
               value: "chat"
+            googleClientId:
+              value: "431775673466-bq6f5ucno6j985rbstvf8b5aliqvo6h1.apps.googleusercontent.com"
 
         ll-backend:
           env:
@@ -42,6 +44,9 @@ spec:
                 secretKeyRef:
                   name: postgres-ll-connection
                   key: connectionString
+            
+            Google__ClientId:
+              value: "431775673466-bq6f5ucno6j985rbstvf8b5aliqvo6h1.apps.googleusercontent.com"
 
             FeatureManagement__AllowAnonymous:
               value: "true"
