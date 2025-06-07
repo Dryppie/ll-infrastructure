@@ -1,15 +1,4 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-chat-connection
-  namespace: ll
-type: Opaque
-stringData:
-  connectionString: "Host=postgres-chat;Port=5432;Database=ll_chat;Username=chat_user;Password=an0th3rSecr3t;Pooling=true;Ssl Mode=Disable"
-
----
-
-apiVersion: v1
 kind: Service
 metadata:
   name: postgres-chat

@@ -1,15 +1,4 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-ll-connection
-  namespace: ll
-type: Opaque
-stringData:
-  connectionString: "Host=postgres-ll;Port=5432;Database=legends_legacy;Username=ll_user;Password=sup3rSecr3t;Pooling=true;Ssl Mode=Disable"
-
----
-
-apiVersion: v1
 kind: Service
 metadata:
   name: postgres-ll
