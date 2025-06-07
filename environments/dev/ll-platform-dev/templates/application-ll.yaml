@@ -52,7 +52,7 @@ spec:
               value: "true"
 
             FeatureManagement__DisableAllRequests:
-              values: "true"
+              value: "true"
 
         ll-chat:
           env:
