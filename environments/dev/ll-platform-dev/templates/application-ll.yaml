@@ -13,7 +13,7 @@ spec:
       - CreateNamespace=true
     automated: {}
   source:
-    repoURL: { { .Values.argocd.repoURL } }
+    repoURL: {{ .Values.argocd.repoURL }}
     targetRevision: 0.1.*
     chart: helm/ll-app
     helm:
