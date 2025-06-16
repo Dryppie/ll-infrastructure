@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: ll-ingress
   namespace: ll
+  nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  nginx.ingress.kubernetes.io/upgrade: "websocket"
 spec:
   ingressClassName: traefik
   rules:
