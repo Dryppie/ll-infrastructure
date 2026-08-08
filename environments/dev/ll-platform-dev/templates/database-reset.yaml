@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reset-dev-databases-script
+  namespace: ll
+data:
+  reset-databases.sh: |
+    #!/bin/sh
+    set -eu
+
+    expected_namespace="ll"
+    expected_game_database="legendslegacy"
+    expected_chat_database="myseconddb"
+
+    require_value() {
+      variable_name="$1"
+      eval "variable_value=\${$variable_name:-}"
+      if [ -z "$variable_value" ]; then
+        echo "Required environment variable $variable_name is missing." >&2
+        exit 1
+      fi
+    }
+
+    for variable_name in POD_NAMESPACE PGHOST PGPORT PGUSER PGPASSWORD GAME_DATABASE CHAT_DATABASE; do
+      require_value "$variable_name"
+    done
+
+    if [ "$POD_NAMESPACE" != "$expected_namespace" ]; then
+      echo "Refusing to reset databases outside namespace $expected_namespace." >&2
+      exit 1
+    fi
+
+    if [ "$GAME_DATABASE" != "$expected_game_database" ] || [ "$CHAT_DATABASE" != "$expected_chat_database" ]; then
+      echo "Refusing to reset unexpected database names." >&2
+      exit 1
+    fi
+
+    if [ "$GAME_DATABASE" = "$CHAT_DATABASE" ] || [ "$GAME_DATABASE" = "postgres" ] || [ "$CHAT_DATABASE" = "postgres" ]; then
+      echo "Database reset configuration is unsafe." >&2
+      exit 1
+    fi
+
+    echo "Checking PostgreSQL connectivity before making changes."
+    psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname=postgres --command="SELECT current_database(), current_user;"
+
+    reset_database() {
+      database_name="$1"
+      echo "Resetting database $database_name."
+      psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname=postgres \
+        --set=database_name="$database_name" --set=database_owner="$PGUSER" <<'SQL'
+    DROP DATABASE IF EXISTS :"database_name" WITH (FORCE);
+    CREATE DATABASE :"database_name" OWNER :"database_owner";
+    SQL
+    }
+
+    reset_database "$GAME_DATABASE"
+    reset_database "$CHAT_DATABASE"
+
+    echo "Installing the Quartz PostgreSQL schema in $GAME_DATABASE."
+    psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$GAME_DATABASE" --file=/quartz/tables_postgres.sql
+
+    echo "Both development databases were reset successfully."
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reset-dev-databases-quartz
+  namespace: ll
+data:
+  tables_postgres.sql: |
+{{ .Files.Get "files/quartz/tables_postgres.sql" | nindent 4 }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reset-dev-databases
+  namespace: ll
+spec:
+  # This object is only a reusable Job template. It must never run on a schedule.
+  schedule: "0 0 1 1 *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reset-dev-databases
+      annotations:
+        argocd.argoproj.io/compare-options: IgnoreExtraneous
+        argocd.argoproj.io/ignore-resource-updates: "true"
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: reset-dev-databases
+          annotations:
+            argocd.argoproj.io/ignore-resource-updates: "true"
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          containers:
+            - name: reset
+              image: "{{ .Values.databaseReset.image.repository }}:{{ .Values.databaseReset.image.tag }}"
+              imagePullPolicy: {{ .Values.databaseReset.image.pullPolicy }}
+              command:
+                - /bin/sh
+                - /scripts/reset-databases.sh
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: PGHOST
+                  value: postgres
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_PASSWORD
+                - name: GAME_DATABASE
+                  value: {{ .Values.databaseReset.gameDatabase | quote }}
+                - name: CHAT_DATABASE
+                  value: {{ .Values.databaseReset.chatDatabase | quote }}
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 32Mi
+                limits:
+                  cpu: 250m
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: reset-script
+                  mountPath: /scripts
+                  readOnly: true
+                - name: quartz-schema
+                  mountPath: /quartz
+                  readOnly: true
+          volumes:
+            - name: reset-script
+              configMap:
+                name: reset-dev-databases-script
+                defaultMode: 0555
+            - name: quartz-schema
+              configMap:
+                name: reset-dev-databases-quartz

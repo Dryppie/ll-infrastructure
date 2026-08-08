@@ -33,8 +33,17 @@ spec:
               value: "chat"
             googleClientId:
               value: "431775673466-bq6f5ucno6j985rbstvf8b5aliqvo6h1.apps.googleusercontent.com"
+            maintenanceEnabled:
+              value: {{ .Values.maintenance.pageEnabled | quote }}
+            maintenanceMessage:
+              value: {{ .Values.maintenance.message | urlquery | quote }}
+            maintenanceExpectedBack:
+              value: {{ .Values.maintenance.expectedBack | urlquery | quote }}
 
         ll-backend:
+          replicaCount: {{ ternary 0 .Values.workloads.backendReplicas .Values.maintenance.stopServices }}
+          worker:
+            replicaCount: {{ ternary 0 .Values.workloads.workerReplicas .Values.maintenance.stopServices }}
           env:
             ASPNETCORE_ENVIRONMENT:
               value: Development
@@ -44,7 +53,6 @@ spec:
                 secretKeyRef:
                   name: postgres-ll-connection
                   key: connectionString
-            
             Google__ClientId:
               value: "431775673466-bq6f5ucno6j985rbstvf8b5aliqvo6h1.apps.googleusercontent.com"
 
@@ -52,9 +60,16 @@ spec:
               value: "true"
 
             FeatureManagement__DisableAllRequests:
-              value: "false"
+              value: {{ .Values.maintenance.rejectTraffic | quote }}
+
+            FeatureManagement__MaintenanceMessage:
+              value: {{ .Values.maintenance.message | quote }}
+
+            FeatureManagement__MaintenanceRetryAfterSeconds:
+              value: {{ .Values.maintenance.retryAfterSeconds | quote }}
 
         ll-chat:
+          replicaCount: {{ ternary 0 .Values.workloads.chatReplicas .Values.maintenance.stopServices }}
           env:
             ASPNETCORE_ENVIRONMENT:
               value: Development
@@ -64,3 +79,12 @@ spec:
                 secretKeyRef:
                   name: postgres-chat-connection
                   key: connectionString
+
+            FeatureManagement__DisableAllRequests:
+              value: {{ .Values.maintenance.rejectTraffic | quote }}
+
+            FeatureManagement__MaintenanceMessage:
+              value: {{ .Values.maintenance.message | quote }}
+
+            FeatureManagement__MaintenanceRetryAfterSeconds:
+              value: {{ .Values.maintenance.retryAfterSeconds | quote }}

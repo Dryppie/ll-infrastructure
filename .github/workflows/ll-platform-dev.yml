@@ -7,7 +7,7 @@ on:
       - main
       - "releases/**"
     paths:
-      - environments/dev
+      - "environments/dev/**"
 
 env:
   major: 0

@@ -4,7 +4,7 @@ metadata:
   name: init-myseconddb
   namespace: ll
 spec:
-  ttlSecondsAfterFinished: 300
+  # Keep the completed initializer so Argo CD does not recreate it repeatedly.
   template:
     spec:
       restartPolicy: OnFailure

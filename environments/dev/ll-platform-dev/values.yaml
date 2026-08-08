@@ -1,2 +1,23 @@
 argocd:
   repoURL: ghcr.io/dryppie
+
+maintenance:
+  pageEnabled: false
+  rejectTraffic: false
+  stopServices: false
+  message: "Legend's Legacy is undergoing maintenance."
+  expectedBack: ""
+  retryAfterSeconds: 300
+
+workloads:
+  backendReplicas: 1
+  chatReplicas: 1
+  workerReplicas: 1
+
+databaseReset:
+  image:
+    repository: postgres
+    tag: "15"
+    pullPolicy: IfNotPresent
+  gameDatabase: legendslegacy
+  chatDatabase: myseconddb
