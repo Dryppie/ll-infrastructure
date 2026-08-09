@@ -58,12 +58,21 @@ The game API also applies its normal seed data.
 The maintenance feature must be deployed once before it can be controlled with
 Argo CD overrides:
 
-1. Publish compatible frontend, backend, and chat images/charts.
-2. Update the `ll-app` dependency versions in the infrastructure repository.
-3. Publish the updated `ll-app` chart.
-4. Publish the updated `ll-platform-dev` chart.
-5. Let Argo CD sync both `ll-platform-dev` and `ll-app`.
-6. Verify that the reset template exists and is suspended:
+1. Create the shared system-chat Secret once from a checkout of this repository
+   on the server:
+
+   ```bash
+   bash scripts/create-system-chat-secret.sh
+   ```
+
+   Type `CREATE ll-system-chat` exactly. The generated value is not printed or
+   stored in Git. If the Secret already exists, the script leaves it unchanged.
+2. Publish compatible frontend, backend, and chat images/charts.
+3. Update the `ll-app` dependency versions in the infrastructure repository.
+4. Publish the updated `ll-app` chart.
+5. Publish the updated `ll-platform-dev` chart.
+6. Let Argo CD sync both `ll-platform-dev` and `ll-app`.
+7. Verify that the reset template exists and is suspended:
 
    ```bash
    kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml \
@@ -165,6 +174,9 @@ The user must have permission to update, sync, and read both applications.
   maintenance enforcement.
 - The reset credentials must remain in Kubernetes Secrets and must never be
   added to scripts, ConfigMaps, or logs.
+- Achievement announcements use the `ll-system-chat` Secret. Both the game
+  backend/worker and chat Pods reference the same key; the plaintext value is
+  never committed to the chart.
 - Existing plaintext PostgreSQL credentials in the platform manifest should be
   rotated and migrated into the sealed-secret workflow separately.
 - Consider adding persistent `pg_dump` storage before using the reset process
