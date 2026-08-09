@@ -42,11 +42,20 @@ validate_text() {
   fi
 }
 
+wait_for_auto_sync() {
+  local app_name="$1"
+  shift
+
+  # Setting a Helm parameter starts an operation because these Applications
+  # use automated sync. Refresh and wait for that operation instead of racing
+  # it with a second explicit sync request.
+  argocd app get "$app_name" --refresh >/dev/null
+  argocd app wait "$app_name" --operation --sync "$@" --timeout "$wait_timeout"
+}
+
 sync_apps() {
-  argocd app sync "$platform_app"
-  argocd app wait "$platform_app" --sync --timeout "$wait_timeout"
-  argocd app sync "$workload_app"
-  argocd app wait "$workload_app" --sync --health --timeout "$wait_timeout"
+  wait_for_auto_sync "$platform_app"
+  wait_for_auto_sync "$workload_app" --health
 }
 
 preflight() {
@@ -64,8 +73,8 @@ enter_maintenance() {
   validate_text "Expected-back text" "$expected_back"
 
   echo "This will show the maintenance page, reject API/chat traffic, and stop game services."
-  read -r -p "Type 'ENTER MAINTENANCE' to continue: " confirmation
-  if [[ "$confirmation" != "ENTER MAINTENANCE" ]]; then
+  read -r -p "Type 'MAINTENANCE' to continue: " confirmation
+  if [[ "$confirmation" != "MAINTENANCE" ]]; then
     echo "Confirmation did not match. Nothing was changed."
     exit 1
   fi
@@ -92,8 +101,8 @@ leave_maintenance() {
   local confirmation
 
   echo "This will start game services, wait for health, and then restore the login page."
-  read -r -p "Type 'LEAVE MAINTENANCE' to continue: " confirmation
-  if [[ "$confirmation" != "LEAVE MAINTENANCE" ]]; then
+  read -r -p "Type 'MAINTENANCE' to continue: " confirmation
+  if [[ "$confirmation" != "MAINTENANCE" ]]; then
     echo "Confirmation did not match. Nothing was changed."
     exit 1
   fi

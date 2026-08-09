@@ -131,8 +131,9 @@ remains enabled.
 
 The operator script uses temporary Helm parameter overrides on
 `ll-platform-dev`. It does not publish a new chart for each maintenance window.
-The underlying operations are `argocd app set`, `argocd app sync`,
-`argocd app wait`, and finally `argocd app unset`.
+The underlying operations are `argocd app set`, forced status refreshes,
+`argocd app wait` for automated synchronization, and finally
+`argocd app unset`.
 
 Both Argo CD applications must be visible to the authenticated CLI user:
 
