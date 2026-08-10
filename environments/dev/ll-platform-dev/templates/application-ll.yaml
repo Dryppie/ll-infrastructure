@@ -43,6 +43,7 @@ spec:
         ll-backend:
           replicaCount: {{ ternary 0 .Values.workloads.backendReplicas .Values.maintenance.stopServices }}
           worker:
+            enabled: true
             replicaCount: {{ ternary 0 .Values.workloads.workerReplicas .Values.maintenance.stopServices }}
           env:
             ASPNETCORE_ENVIRONMENT:
