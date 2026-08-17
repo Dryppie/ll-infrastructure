@@ -90,7 +90,7 @@ enter_maintenance() {
   argocd app set "$platform_app" --helm-set maintenance.rejectTraffic=true
   sync_apps
 
-  echo "Step 3/3: stopping backend, chat, and worker workloads."
+  echo "Step 3/3: stopping backend, chat, LiveOps, and worker workloads."
   argocd app set "$platform_app" --helm-set maintenance.stopServices=true
   sync_apps
 
@@ -107,7 +107,7 @@ leave_maintenance() {
     exit 1
   fi
 
-  echo "Step 1/2: starting backend, chat, and worker workloads while traffic remains rejected."
+  echo "Step 1/2: starting backend, chat, LiveOps, and worker workloads while traffic remains rejected."
   argocd app set "$platform_app" --helm-set maintenance.stopServices=false
   sync_apps
 

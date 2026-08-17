@@ -12,7 +12,18 @@ maintenance:
 workloads:
   backendReplicas: 1
   chatReplicas: 1
+  liveOpsReplicas: 1
   workerReplicas: 1
+
+liveOps:
+  # Keep disabled until the ll-liveops SealedSecret and external hostname route exist.
+  enabled: false
+  host: liveops.legends-legacy.com
+  chatBaseUrl: http://ll-app-ll-chat/chat/
+  secretName: ll-liveops
+  trustedProxyNetworks:
+    # k3s default pod CIDR; verify against the cluster before enabling.
+    - 10.42.0.0/16
 
 systemChat:
   baseUrl: http://ll-app-ll-chat/chat

@@ -20,6 +20,7 @@ spec:
       values: |
         #
         environmentHost: dev.legends-legacy.com
+        liveOpsHost: {{ .Values.liveOps.host | quote }}
 
         ll-frontend:
           env:
@@ -97,6 +98,14 @@ spec:
                   name: {{ .Values.systemChat.secret.name | quote }}
                   key: {{ .Values.systemChat.secret.key | quote }}
 
+            {{ if .Values.liveOps.enabled }}
+            InternalModeration__Secret:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: chat-moderation-secret
+            {{ end }}
+
             FeatureManagement__DisableAllRequests:
               value: {{ .Values.maintenance.rejectTraffic | quote }}
 
@@ -105,3 +114,79 @@ spec:
 
             FeatureManagement__MaintenanceRetryAfterSeconds:
               value: {{ .Values.maintenance.retryAfterSeconds | quote }}
+
+        ll-liveops:
+          enabled: {{ .Values.liveOps.enabled }}
+          replicaCount: {{ ternary 0 .Values.workloads.liveOpsReplicas .Values.maintenance.stopServices }}
+          probes:
+            host: {{ .Values.liveOps.host | quote }}
+          env:
+            ASPNETCORE_ENVIRONMENT:
+              value: Production
+
+            AllowedHosts:
+              value: {{ .Values.liveOps.host | quote }}
+
+            ConnectionStrings__LegendsLegacyDB:
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-ll-connection
+                  key: connectionString
+
+            StaffIdentity__Authority:
+              value: https://accounts.google.com
+
+            StaffIdentity__Audience:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: google-client-id
+
+            StaffIdentity__ClientId:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: google-client-id
+
+            StaffIdentity__ClientSecret:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: google-client-secret
+
+            StaffIdentity__CallbackPath:
+              value: /signin-oidc
+
+            StaffIdentity__OwnerSubject:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: owner-subject
+                  optional: true
+
+            StaffIdentity__BootstrapOwnerEmail:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: bootstrap-owner-email
+                  optional: true
+
+            ReverseProxy__Enabled:
+              value: "true"
+
+            ReverseProxy__ForwardLimit:
+              value: "1"
+
+            {{ range $index, $network := .Values.liveOps.trustedProxyNetworks }}
+            ReverseProxy__KnownNetworks__{{ $index }}:
+              value: {{ $network | quote }}
+            {{ end }}
+
+            Chat__Moderation__BaseUrl:
+              value: {{ .Values.liveOps.chatBaseUrl | quote }}
+
+            Chat__Moderation__Secret:
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.liveOps.secretName | quote }}
+                  key: chat-moderation-secret

@@ -13,7 +13,7 @@ The workflow has three independent controls:
 | --- | --- |
 | `maintenance.pageEnabled` | Shows only the login-themed maintenance panel, redirects protected/signup/unknown routes to `/login`, and suppresses frontend API, time-sync, and realtime startup calls. |
 | `maintenance.rejectTraffic` | Makes the game API and chat service return HTTP 503 with `Retry-After`, while preserving `/healthz/ready` and `/healthz/live`. |
-| `maintenance.stopServices` | Scales the game API, chat service, and worker Deployments to zero. The frontend remains running. |
+| `maintenance.stopServices` | Scales the game API, chat service, LiveOps dashboard, and worker Deployments to zero. The frontend remains running. |
 
 Additional runtime values control the visible message:
 
@@ -40,7 +40,7 @@ from its schedule.
 The reset implementation:
 
 - Requires the exact confirmation phrase `RESET ll-platform-dev`.
-- Refuses to run while backend, chat, worker, the database initializer, or
+- Refuses to run while backend, chat, LiveOps, worker, the database initializer, or
   another reset is active.
 - Verifies the namespace and exact development database names inside the Pod.
 - Drops and recreates both the game and chat development databases.
@@ -101,7 +101,7 @@ reconciliations:
 
 1. Roll out the frontend maintenance page and wait for `ll-app` health.
 2. Reject game API and chat traffic while leaving health checks available.
-3. Scale backend, chat, and worker to zero and wait for reconciliation.
+3. Scale backend, chat, LiveOps, and worker to zero and wait for reconciliation.
 
 If any step fails, stop and investigate. The script deliberately does not
 attempt to roll forward after a failed step.
@@ -130,7 +130,7 @@ bash scripts/maintenance.sh leave
 
 The script requires `LEAVE MAINTENANCE` and then:
 
-1. Restores backend, chat, and worker replicas while non-health traffic remains
+1. Restores backend, chat, LiveOps, and worker replicas while non-health traffic remains
    rejected.
 2. Waits for Argo CD to report `ll-app` synced and healthy. Readiness health
    checks remain available during startup and migrations.

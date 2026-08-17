@@ -36,3 +36,8 @@ dependencies:
   - name: ll-chat
     version: "{ll-chat.version}"
     repository: "oci://ghcr.io/dryppie/helm"
+
+  - name: ll-liveops
+    version: "{ll-liveops.version}"
+    repository: "oci://ghcr.io/dryppie/helm"
+    condition: ll-liveops.enabled

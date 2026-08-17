@@ -11,6 +11,7 @@ writer_deployments=(
   "ll-app-ll-backend"
   "ll-app-ll-backend-worker"
   "ll-app-ll-chat"
+  "ll-app-ll-liveops"
 )
 
 kubectl --namespace "$namespace" get cronjob "$template_name" >/dev/null

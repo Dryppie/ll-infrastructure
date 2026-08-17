@@ -4,6 +4,7 @@
 #
 
 environmentHost: ""
+liveOpsHost: ""
 
 ll-frontend:
   imagePullSecrets:
@@ -14,5 +15,10 @@ ll-backend:
     - name: regcred
 
 ll-chat:
+  imagePullSecrets:
+    - name: regcred
+
+ll-liveops:
+  enabled: true
   imagePullSecrets:
     - name: regcred
