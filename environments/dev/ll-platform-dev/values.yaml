@@ -17,7 +17,7 @@ workloads:
 
 liveOps:
   # Keep disabled until the ll-liveops SealedSecret and external hostname route exist.
-  enabled: false
+  enabled: true
   host: liveops.legends-legacy.com
   chatBaseUrl: http://ll-app-ll-chat/chat/
   secretName: ll-liveops
