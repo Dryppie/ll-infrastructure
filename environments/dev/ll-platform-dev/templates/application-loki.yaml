@@ -167,6 +167,12 @@ spec:
           enabled: false
         resultsCache:
           enabled: false
+        memberlist:
+          service:
+            publishNotReadyAddresses: true
+        sidecar:
+          rules:
+            enabled: false
         ruler:
           enabled: false
         minio:
