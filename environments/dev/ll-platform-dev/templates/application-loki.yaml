@@ -1,0 +1,188 @@
+{{- if .Values.observability.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ll-loki
+  namespace: argocd
+spec:
+  destination:
+    namespace: {{ .Values.observability.namespace | quote }}
+    server: https://kubernetes.default.svc
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  source:
+    repoURL: https://grafana-community.github.io/helm-charts
+    targetRevision: {{ .Values.observability.loki.chartVersion | quote }}
+    chart: loki
+    helm:
+      releaseName: loki
+      values: |
+        deploymentMode: Monolithic
+
+        commonLabels:
+          app.kubernetes.io/part-of: legends-legacy
+          legends-legacy.com/environment: dev
+
+        defaults:
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+
+        serviceAccount:
+          automountServiceAccountToken: false
+
+        rbac:
+          namespaced: true
+
+        loki:
+          auth_enabled: false
+          analytics:
+            reporting_enabled: false
+          commonConfig:
+            replication_factor: 1
+          schemaConfig:
+            configs:
+              - from: "2026-08-01"
+                store: tsdb
+                object_store: s3
+                schema: v13
+                index:
+                  prefix: loki_index_
+                  period: 24h
+          pattern_ingester:
+            enabled: false
+          limits_config:
+            allow_structured_metadata: true
+            volume_enabled: true
+            ingestion_rate_mb: 2
+            ingestion_burst_size_mb: 4
+            max_query_lookback: 720h
+            retention_period: 336h
+            retention_stream:
+              - selector: '{environment="production",level=~"warning|error|critical"}'
+                priority: 10
+                period: 720h
+              - selector: '{environment="production",level=~"debug|trace"}'
+                priority: 20
+                period: 72h
+              - selector: '{environment="staging"}'
+                priority: 10
+                period: 168h
+              - selector: '{environment="development"}'
+                priority: 10
+                period: 72h
+              - selector: '{service="kubernetes-events"}'
+                priority: 20
+                period: 168h
+          compactor:
+            working_directory: /var/loki/compactor
+            retention_enabled: true
+            retention_delete_delay: 2h
+            delete_request_store: s3
+          storage:
+            type: s3
+            bucketNames:
+              chunks: '${LOKI_S3_BUCKET}'
+              ruler: '${LOKI_S3_BUCKET}'
+              admin: '${LOKI_S3_BUCKET}'
+            s3:
+              endpoint: '${LOKI_S3_ENDPOINT}'
+              region: '${LOKI_S3_REGION}'
+              accessKeyId: '${AWS_ACCESS_KEY_ID}'
+              secretAccessKey: '${AWS_SECRET_ACCESS_KEY}'
+              signatureVersion: v4
+              s3ForcePathStyle: true
+              insecure: false
+              disable_dualstack: true
+          tracing:
+            enabled: false
+
+        singleBinary:
+          replicas: {{ .Values.observability.loki.replicas }}
+          extraArgs:
+            - -config.expand-env=true
+          extraEnvFrom:
+            - secretRef:
+                name: {{ .Values.observability.loki.secretName | quote }}
+          podDisruptionBudget:
+            enabled: false
+          podLabels:
+            legends-legacy.com/component: logging-backend
+            legends-legacy.com/environment: dev
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1536Mi
+          persistence:
+            enabled: true
+            accessModes:
+              - ReadWriteOnce
+            size: {{ .Values.observability.loki.persistenceSize | quote }}
+            storageClass: {{ .Values.observability.loki.storageClass | quote }}
+            enableStatefulSetAutoDeletePVC: false
+            whenDeleted: Retain
+            whenScaled: Retain
+
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        ingester:
+          replicas: 0
+        querier:
+          replicas: 0
+        queryFrontend:
+          replicas: 0
+        queryScheduler:
+          replicas: 0
+        distributor:
+          replicas: 0
+        compactor:
+          replicas: 0
+        indexGateway:
+          replicas: 0
+        bloomPlanner:
+          replicas: 0
+        bloomBuilder:
+          replicas: 0
+        bloomGateway:
+          replicas: 0
+
+        gateway:
+          enabled: false
+        lokiCanary:
+          enabled: false
+        test:
+          enabled: false
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        ruler:
+          enabled: false
+        minio:
+          enabled: false
+
+        networkPolicy:
+          enabled: true
+          ingress:
+            namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: {{ .Values.observability.namespace | quote }}
+          metrics:
+            namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: {{ .Values.observability.namespace | quote }}
+          externalStorage:
+            ports:
+              - 443
+{{- end }}
