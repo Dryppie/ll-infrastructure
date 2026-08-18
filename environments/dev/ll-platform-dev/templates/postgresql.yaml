@@ -136,12 +136,12 @@ spec:
           # Basic health checks
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "devuser"]
+              command: ["pg_isready", "-U", "devuser", "-d", "legendslegacy"]
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "devuser"]
+              command: ["pg_isready", "-U", "devuser", "-d", "legendslegacy"]
             initialDelaySeconds: 5
             periodSeconds: 10
 
