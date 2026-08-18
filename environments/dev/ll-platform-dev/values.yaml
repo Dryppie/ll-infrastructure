@@ -49,7 +49,7 @@ observability:
     chartVersion: "18.9.0"
     # Stage the Application at zero first, then raise this to one after the
     # prerequisite checks. Setting it back to zero is the non-destructive stop.
-    replicas: 0
+    replicas: 1
     secretName: loki-r2
     persistenceSize: 10Gi
     # k3s local-path is node-local, WaitForFirstConsumer, non-expandable, and
