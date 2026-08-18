@@ -55,3 +55,8 @@ observability:
     # k3s local-path is node-local, WaitForFirstConsumer, non-expandable, and
     # Delete-reclaim. R2 remains the durable retained-log store.
     storageClass: local-path
+  alloy:
+    enabled: true
+    chartVersion: "1.11.1"
+    clusterName: legends-legacy-dev
+    environment: development

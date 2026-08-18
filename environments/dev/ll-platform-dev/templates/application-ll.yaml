@@ -50,6 +50,18 @@ spec:
             ASPNETCORE_ENVIRONMENT:
               value: Development
 
+            Logging__Console__FormatterName:
+              value: json
+
+            Logging__Console__FormatterOptions__SingleLine:
+              value: "true"
+
+            Logging__Console__FormatterOptions__IncludeScopes:
+              value: "true"
+
+            Logging__Console__FormatterOptions__UseUtcTimestamp:
+              value: "true"
+
             ConnectionStrings__LegendsLegacyDB:
               valueFrom:
                 secretKeyRef:
@@ -85,6 +97,18 @@ spec:
           env:
             ASPNETCORE_ENVIRONMENT:
               value: Development
+
+            Logging__Console__FormatterName:
+              value: json
+
+            Logging__Console__FormatterOptions__SingleLine:
+              value: "true"
+
+            Logging__Console__FormatterOptions__IncludeScopes:
+              value: "true"
+
+            Logging__Console__FormatterOptions__UseUtcTimestamp:
+              value: "true"
 
             ConnectionStrings__LLChatDB:
               valueFrom:

@@ -1,0 +1,420 @@
+{{- if and .Values.observability.enabled .Values.observability.alloy.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ll-alloy-logs
+  namespace: argocd
+spec:
+  destination:
+    namespace: {{ .Values.observability.namespace | quote }}
+    server: https://kubernetes.default.svc
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: {{ .Values.observability.alloy.chartVersion | quote }}
+    chart: alloy
+    helm:
+      releaseName: alloy-logs
+      values: |
+        fullnameOverride: alloy-logs
+
+        crds:
+          create: false
+
+        alloy:
+          enableReporting: false
+          storagePath: /var/lib/alloy
+          mounts:
+            varlog: true
+            extra:
+              - name: alloy-storage
+                mountPath: /var/lib/alloy
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          configMap:
+            content: |-
+              logging {
+                level  = "info"
+                format = "logfmt"
+              }
+
+              discovery.kubernetes "pods" {
+                role = "pod"
+
+                selectors {
+                  role  = "pod"
+                  field = "spec.nodeName=" + sys.env("HOSTNAME")
+                }
+              }
+
+              discovery.relabel "approved_pod_logs" {
+                targets = discovery.kubernetes.pods.targets
+
+                rule {
+                  source_labels = [
+                    "__meta_kubernetes_namespace",
+                    "__meta_kubernetes_pod_name",
+                    "__meta_kubernetes_pod_container_name",
+                  ]
+                  separator = ";"
+                  regex     = `ll;.*;.*|default;cloudflared-[^;]+;cloudflared|kube-system;traefik-[^;]+;traefik|argocd;argocd-(application-controller|repo-server|server)[^;]*;.*`
+                  action    = "keep"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace"]
+                  target_label  = "namespace"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_name"]
+                  target_label  = "pod"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_container_name"]
+                  target_label  = "container"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_node_name"]
+                  target_label  = "node"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_version"]
+                  target_label  = "version"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+                  target_label  = "service"
+                }
+
+                rule {
+                  source_labels = ["service", "__meta_kubernetes_pod_label_app"]
+                  separator     = ";"
+                  regex         = `^;(.+)$`
+                  replacement   = "$1"
+                  target_label  = "service"
+                }
+
+                rule {
+                  source_labels = ["service", "__meta_kubernetes_pod_container_name"]
+                  separator     = ";"
+                  regex         = `^;(.+)$`
+                  replacement   = "$1"
+                  target_label  = "service"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+                  target_label  = "component"
+                }
+
+                rule {
+                  source_labels = ["service"]
+                  regex         = "traefik"
+                  replacement   = "ingress"
+                  target_label  = "component"
+                }
+
+                rule {
+                  source_labels = ["service"]
+                  regex         = "cloudflared"
+                  replacement   = "tunnel"
+                  target_label  = "component"
+                }
+
+                rule {
+                  source_labels = ["service"]
+                  regex         = `argocd-.*`
+                  replacement   = "gitops"
+                  target_label  = "component"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_controller_name"]
+                  target_label  = "workload"
+                }
+
+                rule {
+                  source_labels = ["workload"]
+                  regex         = `^(.+)-[a-f0-9]{8,10}$`
+                  replacement   = "$1"
+                  target_label  = "workload"
+                }
+
+                rule {
+                  replacement  = {{ .Values.observability.alloy.clusterName | quote }}
+                  target_label = "cluster"
+                }
+
+                rule {
+                  replacement  = {{ .Values.observability.alloy.environment | quote }}
+                  target_label = "environment"
+                }
+
+                rule {
+                  replacement  = "unknown"
+                  target_label = "level"
+                }
+
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+                  separator     = "/"
+                  replacement   = "/var/log/pods/*$1/*.log"
+                  target_label  = "__path__"
+                }
+              }
+
+              loki.source.file "approved_pod_logs" {
+                targets                 = discovery.relabel.approved_pod_logs.output
+                forward_to              = [loki.process.approved_pod_logs.receiver]
+                tail_from_end           = true
+                on_positions_file_error = "restart_from_end"
+              }
+
+              loki.process "approved_pod_logs" {
+                forward_to = [loki.relabel.normalize_levels.receiver]
+
+                stage.cri {
+                  max_partial_lines              = 100
+                  max_partial_line_size          = 262144
+                  max_partial_line_size_truncate = true
+                }
+
+                stage.json {
+                  expressions = {
+                    generic_level = "level",
+                    dotnet_level  = "LogLevel",
+                  }
+                  drop_malformed = false
+                }
+
+                stage.labels {
+                  values = {
+                    level = "generic_level",
+                  }
+                }
+
+                stage.labels {
+                  values = {
+                    level = "dotnet_level",
+                  }
+                }
+
+                stage.match {
+                  selector = `{service="traefik"}`
+
+                  stage.json {
+                    expressions = {
+                      downstream_status = "DownstreamStatus",
+                    }
+                    drop_malformed = false
+                  }
+
+                  stage.drop {
+                    source              = "downstream_status"
+                    expression          = `^[23][0-9]{2}$`
+                    drop_counter_reason = "traefik_success"
+                  }
+                }
+
+                stage.match {
+                  selector = `{component="frontend"}`
+
+                  stage.drop {
+                    expression          = `" [23][0-9]{2} `
+                    drop_counter_reason = "frontend_success"
+                  }
+                }
+
+                stage.match {
+                  selector = `{namespace="argocd"}`
+
+                  stage.drop {
+                    source              = "generic_level"
+                    expression          = `(?i)^(debug|info|information)$`
+                    drop_counter_reason = "argocd_routine"
+                  }
+                }
+
+                stage.structured_metadata {
+                  values = {
+                    node    = "",
+                    pod     = "",
+                    version = "",
+                  }
+                }
+
+                stage.label_drop {
+                  values = ["filename"]
+                }
+              }
+
+              loki.relabel "normalize_levels" {
+                forward_to = [loki.write.cluster.receiver]
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^(info|information)$`
+                  replacement   = "information"
+                  target_label  = "level"
+                }
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^(warn|warning)$`
+                  replacement   = "warning"
+                  target_label  = "level"
+                }
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^error$`
+                  replacement   = "error"
+                  target_label  = "level"
+                }
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^(fatal|critical)$`
+                  replacement   = "critical"
+                  target_label  = "level"
+                }
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^debug$`
+                  replacement   = "debug"
+                  target_label  = "level"
+                }
+
+                rule {
+                  source_labels = ["level"]
+                  regex         = `(?i)^trace$`
+                  replacement   = "trace"
+                  target_label  = "level"
+                }
+              }
+
+              loki.write "cluster" {
+                endpoint {
+                  url = "http://loki.{{ .Values.observability.namespace }}.svc.cluster.local:3100/loki/api/v1/push"
+                }
+              }
+
+        controller:
+          type: daemonset
+          terminationGracePeriodSeconds: 30
+          podLabels:
+            legends-legacy.com/component: logging-collector
+            legends-legacy.com/environment: dev
+          volumes:
+            extra:
+              - name: alloy-storage
+                hostPath:
+                  path: /var/lib/alloy-logs
+                  type: DirectoryOrCreate
+
+        rbac:
+          create: true
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - watch
+          # Chart 1.11.1 serializes both rule arrays even when one is empty.
+          # Duplicate the same rule rather than accepting its broad defaults.
+          clusterRules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - watch
+
+        serviceAccount:
+          create: true
+          automountServiceAccountToken: true
+
+        configReloader:
+          enabled: true
+
+        serviceMonitor:
+          enabled: false
+
+        ingress:
+          enabled: false
+
+        networkPolicy:
+          enabled: true
+          policyTypes:
+            - Ingress
+            - Egress
+          ingress:
+            - from:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: {{ .Values.observability.namespace | quote }}
+              ports:
+                - protocol: TCP
+                  port: 12345
+          egress:
+            - to:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: {{ .Values.observability.namespace | quote }}
+                  podSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: loki
+                      app.kubernetes.io/instance: loki
+              ports:
+                - protocol: TCP
+                  port: 3100
+            - to:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: kube-system
+                  podSelector:
+                    matchLabels:
+                      k8s-app: kube-dns
+              ports:
+                - protocol: UDP
+                  port: 53
+                - protocol: TCP
+                  port: 53
+            - ports:
+                - protocol: TCP
+                  port: 443
+                - protocol: TCP
+                  port: 6443
+{{- end }}
