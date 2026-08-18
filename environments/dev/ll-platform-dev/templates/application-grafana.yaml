@@ -1,0 +1,592 @@
+{{- if and .Values.observability.enabled .Values.observability.grafana.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ll-grafana
+  namespace: argocd
+spec:
+  destination:
+    namespace: {{ .Values.observability.namespace | quote }}
+    server: https://kubernetes.default.svc
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  source:
+    repoURL: https://grafana-community.github.io/helm-charts
+    targetRevision: {{ .Values.observability.grafana.chartVersion | quote }}
+    chart: grafana
+    helm:
+      releaseName: grafana
+      values: |
+        fullnameOverride: grafana
+
+        replicas: {{ .Values.observability.grafana.replicas }}
+        revisionHistoryLimit: 2
+        deploymentStrategy:
+          type: Recreate
+
+        testFramework:
+          enabled: false
+
+        rbac:
+          create: false
+
+        serviceAccount:
+          create: true
+          automountServiceAccountToken: false
+
+        automountServiceAccountToken: false
+        enableServiceLinks: false
+
+        podLabels:
+          legends-legacy.com/component: logging-ui
+          legends-legacy.com/environment: dev
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 472
+          runAsGroup: 472
+          fsGroup: 472
+
+        containerSecurityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+
+        admin:
+          existingSecret: {{ .Values.observability.grafana.secretName | quote }}
+          userKey: admin-user
+          passwordKey: admin-password
+
+        envValueFrom:
+          GF_SECURITY_SECRET_KEY:
+            secretKeyRef:
+              name: {{ .Values.observability.grafana.secretName | quote }}
+              key: secret-key
+
+        service:
+          enabled: true
+          type: ClusterIP
+          port: 80
+          targetPort: 3000
+
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          path: /
+          pathType: Prefix
+          hosts:
+            - {{ .Values.observability.grafana.host | quote }}
+          tls: []
+
+        persistence:
+          type: pvc
+          enabled: true
+          storageClassName: {{ .Values.observability.grafana.storageClass | quote }}
+          accessModes:
+            - ReadWriteOnce
+          size: {{ .Values.observability.grafana.persistenceSize | quote }}
+          annotations:
+            helm.sh/resource-policy: keep
+            argocd.argoproj.io/sync-options: Prune=false
+          finalizers:
+            - kubernetes.io/pvc-protection
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi
+
+        initChownData:
+          enabled: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+              drop:
+                - ALL
+
+        grafana.ini:
+          analytics:
+            check_for_updates: false
+            reporting_enabled: false
+          dashboards:
+            default_home_dashboard_path: /var/lib/grafana/dashboards/legends-legacy/logging-overview.json
+          auth:
+            disable_login_form: false
+          auth.anonymous:
+            enabled: false
+          auth.basic:
+            enabled: true
+          log:
+            mode: console
+            level: info
+          news:
+            news_feed_enabled: false
+          security:
+            cookie_secure: true
+            cookie_samesite: strict
+            disable_gravatar: true
+          server:
+            domain: {{ .Values.observability.grafana.host | quote }}
+            root_url: {{ printf "https://%s" .Values.observability.grafana.host | quote }}
+            serve_from_sub_path: false
+          snapshots:
+            external_enabled: false
+          users:
+            allow_org_create: false
+            allow_sign_up: false
+            auto_assign_org: true
+            auto_assign_org_role: Viewer
+
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            prune: true
+            deleteDatasources:
+              - name: Loki
+                orgId: 1
+            datasources:
+              - name: Loki
+                uid: loki
+                type: loki
+                access: proxy
+                url: http://loki.{{ .Values.observability.namespace }}.svc.cluster.local:3100
+                isDefault: true
+                editable: false
+                jsonData:
+                  maxLines: 1000
+                  timeout: 60
+
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: legends-legacy
+                orgId: 1
+                folder: Legends Legacy
+                type: file
+                disableDeletion: true
+                editable: false
+                options:
+                  path: /var/lib/grafana/dashboards/legends-legacy
+
+        dashboards:
+          legends-legacy:
+            logging-overview:
+              json: |
+                {
+                  "annotations": {
+                    "list": []
+                  },
+                  "editable": false,
+                  "fiscalYearStartMonth": 0,
+                  "graphTooltip": 1,
+                  "id": null,
+                  "links": [],
+                  "liveNow": false,
+                  "panels": [
+                    {
+                      "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                      },
+                      "fieldConfig": {
+                        "defaults": {},
+                        "overrides": []
+                      },
+                      "gridPos": {
+                        "h": 8,
+                        "w": 16,
+                        "x": 0,
+                        "y": 0
+                      },
+                      "id": 1,
+                      "options": {
+                        "legend": {
+                          "calcs": [],
+                          "displayMode": "list",
+                          "placement": "bottom",
+                          "showLegend": true
+                        },
+                        "tooltip": {
+                          "hideZeros": false,
+                          "mode": "multi",
+                          "sort": "desc"
+                        }
+                      },
+                      "targets": [
+                        {
+                          "datasource": {
+                            "type": "loki",
+                            "uid": "loki"
+                          },
+                          "direction": "backward",
+                          "editorMode": "code",
+                          "expr": "sum by (service, level) (count_over_time({environment=~\"$environment\", namespace=~\"$namespace\", service=~\"$service\", workload=~\"$workload\", level=~\"$level\"}[$__auto]))",
+                          "queryType": "range",
+                          "refId": "A"
+                        }
+                      ],
+                      "title": "Log volume by service and level",
+                      "type": "timeseries"
+                    },
+                    {
+                      "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                      },
+                      "fieldConfig": {
+                        "defaults": {
+                          "color": {
+                            "mode": "thresholds"
+                          },
+                          "mappings": [],
+                          "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                              {
+                                "color": "green",
+                                "value": null
+                              },
+                              {
+                                "color": "red",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        },
+                        "overrides": []
+                      },
+                      "gridPos": {
+                        "h": 8,
+                        "w": 8,
+                        "x": 16,
+                        "y": 0
+                      },
+                      "id": 2,
+                      "options": {
+                        "colorMode": "value",
+                        "graphMode": "area",
+                        "justifyMode": "auto",
+                        "orientation": "auto",
+                        "reduceOptions": {
+                          "calcs": [
+                            "lastNotNull"
+                          ],
+                          "fields": "",
+                          "values": false
+                        },
+                        "showPercentChange": false,
+                        "textMode": "auto",
+                        "wideLayout": true
+                      },
+                      "targets": [
+                        {
+                          "datasource": {
+                            "type": "loki",
+                            "uid": "loki"
+                          },
+                          "direction": "backward",
+                          "editorMode": "code",
+                          "expr": "sum(count_over_time({environment=~\"$environment\", namespace=~\"$namespace\", service=~\"$service\", workload=~\"$workload\", level=~\"error|critical\"}[$__range]))",
+                          "queryType": "instant",
+                          "refId": "A"
+                        }
+                      ],
+                      "title": "Errors in selected range",
+                      "type": "stat"
+                    },
+                    {
+                      "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                      },
+                      "gridPos": {
+                        "h": 16,
+                        "w": 24,
+                        "x": 0,
+                        "y": 8
+                      },
+                      "id": 3,
+                      "options": {
+                        "dedupStrategy": "none",
+                        "enableLogDetails": true,
+                        "prettifyLogMessage": true,
+                        "showCommonLabels": false,
+                        "showLabels": false,
+                        "showTime": true,
+                        "sortOrder": "Descending",
+                        "wrapLogMessage": true
+                      },
+                      "targets": [
+                        {
+                          "datasource": {
+                            "type": "loki",
+                            "uid": "loki"
+                          },
+                          "direction": "backward",
+                          "editorMode": "code",
+                          "expr": "{environment=~\"$environment\", namespace=~\"$namespace\", service=~\"$service\", workload=~\"$workload\", level=~\"$level\"}",
+                          "queryType": "range",
+                          "refId": "A"
+                        }
+                      ],
+                      "title": "Logs",
+                      "type": "logs"
+                    }
+                  ],
+                  "refresh": "10s",
+                  "schemaVersion": 41,
+                  "tags": [
+                    "legends-legacy",
+                    "logs"
+                  ],
+                  "templating": {
+                    "list": [
+                      {
+                        "allValue": ".*",
+                        "current": {
+                          "selected": true,
+                          "text": [
+                            "All"
+                          ],
+                          "value": [
+                            "$__all"
+                          ]
+                        },
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "loki"
+                        },
+                        "definition": "label_values(environment)",
+                        "hide": 0,
+                        "includeAll": true,
+                        "label": "Environment",
+                        "multi": true,
+                        "name": "environment",
+                        "options": [],
+                        "query": "label_values(environment)",
+                        "refresh": 1,
+                        "regex": "",
+                        "skipUrlSync": false,
+                        "sort": 1,
+                        "type": "query"
+                      },
+                      {
+                        "allValue": ".*",
+                        "current": {
+                          "selected": true,
+                          "text": [
+                            "All"
+                          ],
+                          "value": [
+                            "$__all"
+                          ]
+                        },
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "loki"
+                        },
+                        "definition": "label_values({environment=~\"$environment\"}, namespace)",
+                        "hide": 0,
+                        "includeAll": true,
+                        "label": "Namespace",
+                        "multi": true,
+                        "name": "namespace",
+                        "options": [],
+                        "query": "label_values({environment=~\"$environment\"}, namespace)",
+                        "refresh": 1,
+                        "regex": "",
+                        "skipUrlSync": false,
+                        "sort": 1,
+                        "type": "query"
+                      },
+                      {
+                        "allValue": ".*",
+                        "current": {
+                          "selected": true,
+                          "text": [
+                            "All"
+                          ],
+                          "value": [
+                            "$__all"
+                          ]
+                        },
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "loki"
+                        },
+                        "definition": "label_values({environment=~\"$environment\", namespace=~\"$namespace\"}, service)",
+                        "hide": 0,
+                        "includeAll": true,
+                        "label": "Service",
+                        "multi": true,
+                        "name": "service",
+                        "options": [],
+                        "query": "label_values({environment=~\"$environment\", namespace=~\"$namespace\"}, service)",
+                        "refresh": 1,
+                        "regex": "",
+                        "skipUrlSync": false,
+                        "sort": 1,
+                        "type": "query"
+                      },
+                      {
+                        "allValue": ".*",
+                        "current": {
+                          "selected": true,
+                          "text": [
+                            "All"
+                          ],
+                          "value": [
+                            "$__all"
+                          ]
+                        },
+                        "datasource": {
+                          "type": "loki",
+                          "uid": "loki"
+                        },
+                        "definition": "label_values({environment=~\"$environment\", namespace=~\"$namespace\", service=~\"$service\"}, workload)",
+                        "hide": 0,
+                        "includeAll": true,
+                        "label": "Workload",
+                        "multi": true,
+                        "name": "workload",
+                        "options": [],
+                        "query": "label_values({environment=~\"$environment\", namespace=~\"$namespace\", service=~\"$service\"}, workload)",
+                        "refresh": 1,
+                        "regex": "",
+                        "skipUrlSync": false,
+                        "sort": 1,
+                        "type": "query"
+                      },
+                      {
+                        "allValue": ".*",
+                        "current": {
+                          "selected": true,
+                          "text": [
+                            "All"
+                          ],
+                          "value": [
+                            "$__all"
+                          ]
+                        },
+                        "hide": 0,
+                        "includeAll": true,
+                        "label": "Level",
+                        "multi": true,
+                        "name": "level",
+                        "options": [],
+                        "query": "information,warning,error,critical,debug,trace,unknown",
+                        "skipUrlSync": false,
+                        "type": "custom"
+                      }
+                    ]
+                  },
+                  "time": {
+                    "from": "now-1h",
+                    "to": "now"
+                  },
+                  "timepicker": {},
+                  "timezone": "browser",
+                  "title": "Legends Legacy Logs",
+                  "uid": "legends-legacy-logs",
+                  "version": 1,
+                  "weekStart": ""
+                }
+
+        sidecar:
+          alerts:
+            enabled: false
+          dashboards:
+            enabled: false
+          datasources:
+            enabled: false
+          plugins:
+            enabled: false
+
+        serviceMonitor:
+          enabled: false
+
+        imageRenderer:
+          enabled: false
+
+        networkPolicy:
+          enabled: false
+
+        extraObjects:
+          - apiVersion: networking.k8s.io/v1
+            kind: NetworkPolicy
+            metadata:
+              name: grafana-restricted
+              namespace: {{ .Values.observability.namespace | quote }}
+            spec:
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: grafana
+                  app.kubernetes.io/instance: grafana
+              policyTypes:
+                - Ingress
+                - Egress
+              ingress:
+                - from:
+                    - namespaceSelector:
+                        matchLabels:
+                          kubernetes.io/metadata.name: kube-system
+                      podSelector:
+                        matchLabels:
+                          app.kubernetes.io/name: traefik
+                  ports:
+                    - protocol: TCP
+                      port: 3000
+              egress:
+                - to:
+                    - namespaceSelector:
+                        matchLabels:
+                          kubernetes.io/metadata.name: {{ .Values.observability.namespace | quote }}
+                      podSelector:
+                        matchLabels:
+                          app.kubernetes.io/name: loki
+                          app.kubernetes.io/instance: loki
+                  ports:
+                    - protocol: TCP
+                      port: 3100
+                - to:
+                    - namespaceSelector:
+                        matchLabels:
+                          kubernetes.io/metadata.name: kube-system
+                      podSelector:
+                        matchLabels:
+                          k8s-app: kube-dns
+                  ports:
+                    - protocol: UDP
+                      port: 53
+                    - protocol: TCP
+                      port: 53
+{{- end }}

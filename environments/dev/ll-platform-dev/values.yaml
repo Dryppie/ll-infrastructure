@@ -60,3 +60,13 @@ observability:
     chartVersion: "1.11.1"
     clusterName: legends-legacy-dev
     environment: development
+  grafana:
+    # Enable only after the grafana-admin SealedSecret, tunnel hostname, and
+    # Cloudflare Access policy have all been verified using OBSERVABILITY.md.
+    enabled: true
+    chartVersion: "12.11.0"
+    replicas: 1
+    host: grafana.legends-legacy.com
+    secretName: grafana-admin
+    persistenceSize: 5Gi
+    storageClass: local-path
