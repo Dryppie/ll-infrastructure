@@ -50,6 +50,15 @@ spec:
             ASPNETCORE_ENVIRONMENT:
               value: Development
 
+            Logging__LogLevel__Default:
+              value: Warning
+
+            Logging__LogLevel__Microsoft.Hosting.Lifetime:
+              value: Warning
+
+            Logging__LogLevel__Quartz:
+              value: Warning
+
             Logging__Console__FormatterName:
               value: json
 
@@ -97,6 +106,9 @@ spec:
           env:
             ASPNETCORE_ENVIRONMENT:
               value: Development
+
+            Logging__LogLevel__Default:
+              value: Warning
 
             Logging__Console__FormatterName:
               value: json

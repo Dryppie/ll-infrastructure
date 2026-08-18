@@ -18,6 +18,8 @@ spec:
           image: cloudflare/cloudflared:latest
           args:
             - tunnel
+            - --loglevel
+            - warn
             - run
             - --token
             - $(TUNNEL_TOKEN)

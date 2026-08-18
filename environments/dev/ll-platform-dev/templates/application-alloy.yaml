@@ -229,6 +229,18 @@ spec:
                   }
                 }
 
+                stage.drop {
+                  source              = "generic_level"
+                  expression          = `(?i)^(trace|debug|info|information)$`
+                  drop_counter_reason = "routine_generic_level"
+                }
+
+                stage.drop {
+                  source              = "dotnet_level"
+                  expression          = `(?i)^(trace|debug|info|information)$`
+                  drop_counter_reason = "routine_dotnet_level"
+                }
+
                 stage.match {
                   selector = `{service="traefik"}`
 
