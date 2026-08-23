@@ -13,7 +13,7 @@ spec:
       - CreateNamespace=true
     automated: {}
   source:
-    repoURL: {{ .Values.argocd.repoURL }}
+    repoURL: { { .Values.argocd.repoURL } }
     targetRevision: 0.1.*
     chart: helm/ll-app
     helm:
@@ -90,7 +90,7 @@ spec:
               value: "431775673466-bq6f5ucno6j985rbstvf8b5aliqvo6h1.apps.googleusercontent.com"
 
             FeatureManagement__AllowAnonymous:
-              value: "true"
+              value: "false"
 
             FeatureManagement__DisableAllRequests:
               value: {{ .Values.maintenance.rejectTraffic | quote }}
